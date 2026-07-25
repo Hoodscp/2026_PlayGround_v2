@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="SVG Gooey filter와 feBlend를 활용한 PlayGround v2 인터랙티브 예제"
+    />
+    <title>PlayGround v2 — Gooey Menu</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <svg class="filter-defs" aria-hidden="true">
+      <defs>
+        <filter id="gooey" x="-80%" y="-80%" width="260%" height="260%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="9" result="blur" />
+          <feColorMatrix
+            in="blur"
+            mode="matrix"
+            values="
+              1 0 0 0 0
+              0 1 0 0 0
+              0 0 1 0 0
+              0 0 0 22 -10"
+            result="goo"
+          />
+          <feComposite in="SourceGraphic" in2="goo" operator="atop" />
+        </filter>
+
+        <filter id="logo-blend" x="-12%" y="-35%" width="124%" height="170%">
+          <feFlood flood-color="#79d7ff" result="cyan-color" />
+          <feComposite
+            in="cyan-color"
+            in2="SourceAlpha"
+            operator="in"
+            result="cyan"
+          />
+          <feOffset in="cyan" dx="-3" dy="1" result="cyan-offset" />
+
+          <feFlood flood-color="#ff7bc4" result="pink-color" />
+          <feComposite
+            in="pink-color"
+            in2="SourceAlpha"
+            operator="in"
+            result="pink"
+          />
+          <feOffset in="pink" dx="3" dy="-1" result="pink-offset" />
+
+          <feBlend
+            in="cyan-offset"
+            in2="pink-offset"
+            mode="multiply"
+            result="chromatic-ink"
+          />
+          <feBlend
+            in="chromatic-ink"
+            in2="SourceGraphic"
+            mode="screen"
+            result="blended-logo"
+          />
+          <feComposite in="blended-logo" in2="SourceAlpha" operator="in" />
+        </filter>
+
+        <filter id="gooey-demo" x="-40%" y="-40%" width="180%" height="180%">
+          <feGaussianBlur
+            id="demo-blur"
+            in="SourceGraphic"
+            stdDeviation="8"
+            result="demo-blur-result"
+          />
+          <feColorMatrix
+            id="demo-matrix"
+            in="demo-blur-result"
+            mode="matrix"
+            values="
+              1 0 0 0 0
+              0 1 0 0 0
+              0 0 1 0 0
+              0 0 0 20 -9"
+            result="demo-goo"
+          />
+          <feComposite in="SourceGraphic" in2="demo-goo" operator="atop" />
+        </filter>
+      </defs>
+    </svg>
+
+    <header class="site-header">
+      <a class="mini-mark" href="#" aria-label="PlayGround v2 홈">PG<span>°</span></a>
+      <div class="header-meta">
+        <span>EXPERIMENT 02</span>
+        <span>SVG FILTER LAB</span>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero" id="top" aria-labelledby="hero-title">
+        <p class="eyebrow">A DIGITAL SPACE FOR CURIOUS MINDS</p>
+
+        <svg
+          class="hero-logo"
+          viewBox="0 0 1160 240"
+          role="img"
+          aria-labelledby="hero-title logo-desc"
+        >
+          <title id="hero-title">PlayGround v2</title>
+          <desc id="logo-desc">
+            feBlend 필터를 사용해 청록과 분홍 잉크가 겹쳐 보이는 로고
+          </desc>
+          <text
+            x="16"
+            y="172"
+            class="hero-logo__play"
+            filter="url(#logo-blend)"
+          >
+            PlayGround
+          </text>
+          <text x="967" y="94" class="hero-logo__version">v2</text>
+        </svg>
+
+        <div class="hero-footer">
+          <p id="panel-description" class="hero-copy" aria-live="polite">
+            아이디어가 서로 붙고, 늘어나고, 새로운 형태로 바뀌는 디지털
+            플레이그라운드입니다.
+          </p>
+          <p class="menu-hint">
+            <span>EXPLORE THE LAB</span>
+            <span class="menu-hint__line"></span>
+            <span>OPEN MENU</span>
+          </p>
+        </div>
+
+        <div class="orb orb--one" aria-hidden="true"></div>
+        <div class="orb orb--two" aria-hidden="true"></div>
+      </section>
+
+      <section class="motion-lab" id="motion-lab" aria-labelledby="motion-title">
+        <div class="motion-lab__intro">
+          <p class="section-kicker">03 / MOTION</p>
+          <h2 id="motion-title">Soft bodies,<br />sharp ideas.</h2>
+          <p>
+            하나의 필터, 열두 가지 움직임. 포인터를 움직이고, 드래그하고,
+            버튼을 눌러 각각의 Gooey 반응을 직접 확인해 보세요.
+          </p>
+          <a class="back-home" href="#top">BACK TO TOP ↑</a>
+        </div>
+
+        <aside
+          class="lab-controls"
+          id="lab-controls-panel"
+          aria-label="Gooey 필터 조작 패널"
+        >
+          <div class="lab-controls__head">
+            <span>LIVE CONTROLS</span>
+            <button id="reset-controls" type="button">RESET</button>
+          </div>
+          <label>
+            <span>Blur <output id="blur-output">8</output></span>
+            <input id="blur-control" type="range" min="2" max="18" value="8" />
+          </label>
+          <label>
+            <span>Density <output id="density-output">20</output></span>
+            <input id="density-control" type="range" min="12" max="32" value="20" />
+          </label>
+          <label>
+            <span>Blob size <output id="size-output">1.0</output></span>
+            <input
+              id="size-control"
+              type="range"
+              min="0.65"
+              max="1.5"
+              value="1"
+              step="0.05"
+            />
+          </label>
+          <label>
+            <span>Distance <output id="distance-output">110</output></span>
+            <input
+              id="distance-control"
+              type="range"
+              min="60"
+              max="170"
+              value="110"
+            />
+          </label>
+          <label>
+            <span>Speed <output id="speed-output">1.0</output></span>
+            <input
+              id="speed-control"
+              type="range"
+              min="0.4"
+              max="2"
+              value="1"
+              step="0.1"
+            />
+          </label>
+          <div class="control-row">
+            <label class="color-control">
+              <span>Color</span>
+              <input id="color-control" type="color" value="#ffffff" />
+            </label>
+            <label class="blend-control">
+              <span>Blend</span>
+              <select id="blend-control">
+                <option value="multiply">Multiply</option>
+                <option value="screen">Screen</option>
+                <option value="overlay">Overlay</option>
+                <option value="difference">Difference</option>
+              </select>
+            </label>
+          </div>
+        </aside>
+        <button
+          class="controls-trigger"
+          id="controls-trigger"
+          type="button"
+          aria-expanded="false"
+          aria-controls="lab-controls-panel"
+        >
+          <span>LIVE CONTROLS</span>
+          <span id="controls-trigger-icon">↓</span>
+        </button>
+
+        <div class="demo-grid">
+          <article class="demo-card demo-card--wide" id="demo-cursor" data-demo="cursor">
+            <header class="demo-card__header">
+              <span>01</span>
+              <div>
+                <h3>Magnetic Cursor</h3>
+                <p>움직여 보세요 — 방울들이 포인터의 궤적을 따라옵니다.</p>
+              </div>
+              <span>POINTER</span>
+            </header>
+            <div class="demo-stage cursor-stage" id="cursor-stage">
+              <div class="cursor-goo">
+                <i class="cursor-dot cursor-dot--1"></i>
+                <i class="cursor-dot cursor-dot--2"></i>
+                <i class="cursor-dot cursor-dot--3"></i>
+                <i class="cursor-dot cursor-dot--4"></i>
+                <i class="cursor-dot cursor-dot--5"></i>
+              </div>
+              <span class="stage-instruction">MOVE YOUR CURSOR</span>
+            </div>
+          </article>
+
+          <article class="demo-card" data-demo="loader">
+            <header class="demo-card__header">
+              <span>02</span>
+              <div><h3>Liquid Loader</h3><p>회전하며 합쳐지는 로딩 인디케이터.</p></div>
+              <span>AUTO</span>
+            </header>
+            <div class="demo-stage loader-stage">
+              <div class="liquid-loader">
+                <i></i><i></i><i></i><i></i><i></i><i></i>
+              </div>
+              <span class="loader-percent">72%</span>
+            </div>
+          </article>
+
+          <article class="demo-card" data-demo="button">
+            <header class="demo-card__header">
+              <span>03</span>
+              <div><h3>Gooey Button</h3><p>클릭할 때 액체 방울이 튀어 오릅니다.</p></div>
+              <span>CLICK</span>
+            </header>
+            <div class="demo-stage button-stage">
+              <div class="burst-wrap" id="burst-wrap">
+                <i></i><i></i><i></i><i></i><i></i><i></i>
+                <button class="burst-button" id="burst-button" type="button">MAKE A SPLASH</button>
+              </div>
+            </div>
+          </article>
+
+          <article class="demo-card demo-card--wide" data-demo="navigation">
+            <header class="demo-card__header">
+              <span>04</span>
+              <div><h3>Blob Navigation</h3><p>활성 상태가 메뉴 사이를 액체처럼 이동합니다.</p></div>
+              <span>SELECT</span>
+            </header>
+            <div class="demo-stage blob-nav-stage">
+              <div class="blob-tabs" id="blob-tabs">
+                <span class="blob-tabs__active"></span>
+                <button class="is-selected" type="button">DISCOVER</button>
+                <button type="button">COLLECT</button>
+                <button type="button">CREATE</button>
+              </div>
+            </div>
+          </article>
+
+          <article class="demo-card" data-demo="particles">
+            <header class="demo-card__header">
+              <span>05</span>
+              <div><h3>Particle Merge</h3><p>흩어진 입자가 하나의 덩어리로 모입니다.</p></div>
+              <span>HOVER</span>
+            </header>
+            <div class="demo-stage particle-stage">
+              <div class="particle-field">
+                <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+              </div>
+              <span class="stage-instruction">HOLD TO MERGE</span>
+            </div>
+          </article>
+
+          <article class="demo-card" data-demo="text">
+            <header class="demo-card__header">
+              <span>06</span>
+              <div><h3>Liquid Text Reveal</h3><p>방울이 지나간 자리에 단어가 드러납니다.</p></div>
+              <span>AUTO</span>
+            </header>
+            <div class="demo-stage text-stage">
+              <strong>GOOEY</strong>
+              <div class="text-bubbles"><i></i><i></i><i></i><i></i></div>
+            </div>
+          </article>
+
+          <article class="demo-card demo-card--wide" data-demo="elastic">
+            <header class="demo-card__header">
+              <span>07</span>
+              <div><h3>Elastic Connection</h3><p>오른쪽 원을 드래그해 액체 연결부를 늘여 보세요.</p></div>
+              <span>DRAG</span>
+            </header>
+            <div class="demo-stage elastic-stage" id="elastic-stage">
+              <svg id="elastic-svg" viewBox="0 0 800 280" aria-label="드래그 가능한 두 원">
+                <path id="elastic-bridge" d="" />
+                <circle id="elastic-anchor" cx="245" cy="140" r="52" />
+                <circle
+                  id="elastic-handle"
+                  class="elastic-handle"
+                  cx="480"
+                  cy="140"
+                  r="52"
+                  tabindex="0"
+                />
+              </svg>
+              <span class="stage-instruction">DRAG THE RIGHT BLOB</span>
+            </div>
+          </article>
+
+          <article class="demo-card" data-demo="toggle">
+            <header class="demo-card__header">
+              <span>08</span>
+              <div><h3>Bubble Toggle</h3><p>두 상태 사이를 붙었다 떨어지며 전환합니다.</p></div>
+              <span>TOGGLE</span>
+            </header>
+            <div class="demo-stage toggle-stage">
+              <button
+                class="bubble-toggle"
+                id="bubble-toggle"
+                type="button"
+                role="switch"
+                aria-checked="false"
+              >
+                <i></i><span>OFF</span><span>ON</span>
+              </button>
+            </div>
+          </article>
+
+          <article class="demo-card" data-demo="progress">
+            <header class="demo-card__header">
+              <span>09</span>
+              <div><h3>Fluid Progress</h3><p>클릭할 때마다 다음 단계로 이어집니다.</p></div>
+              <span>CLICK</span>
+            </header>
+            <div class="demo-stage progress-stage">
+              <button class="fluid-progress" id="fluid-progress" type="button" aria-label="진행 단계 변경">
+                <span class="progress-fill"></span>
+                <i></i><i></i><i></i><i></i>
+              </button>
+              <span class="progress-label">STEP <b id="progress-step">1</b> / 4</span>
+            </div>
+          </article>
+
+          <article class="demo-card demo-card--wide" data-demo="color">
+            <header class="demo-card__header">
+              <span>10</span>
+              <div><h3>Color Mixing Blobs</h3><p>겹치는 색과 Blend 모드의 관계를 관찰하세요.</p></div>
+              <span>BLEND</span>
+            </header>
+            <div class="demo-stage color-stage">
+              <div class="color-blobs" id="color-blobs">
+                <i class="color-blob color-blob--cyan"></i>
+                <i class="color-blob color-blob--pink"></i>
+                <i class="color-blob color-blob--acid"></i>
+              </div>
+              <span class="blend-readout" id="blend-readout">MULTIPLY</span>
+            </div>
+          </article>
+
+          <article class="demo-card" data-demo="images">
+            <header class="demo-card__header">
+              <span>11</span>
+              <div><h3>Image Metaballs</h3><p>이미지 성격의 원형 썸네일이 서로 연결됩니다.</p></div>
+              <span>HOVER</span>
+            </header>
+            <div class="demo-stage image-stage">
+              <div class="image-metaballs">
+                <i></i><i></i><i></i><i></i>
+              </div>
+            </div>
+          </article>
+
+          <article class="demo-card" data-demo="trail">
+            <header class="demo-card__header">
+              <span>12</span>
+              <div><h3>Gooey Trail</h3><p>직접 그린 움직임이 액체 꼬리로 남습니다.</p></div>
+              <span>DRAW</span>
+            </header>
+            <div class="demo-stage trail-stage" id="trail-stage">
+              <div class="trail-layer" id="trail-layer"></div>
+              <span class="stage-instruction">DRAW INSIDE</span>
+            </div>
+          </article>
+        </div>
+
+        <footer class="motion-footer">
+          <span>PLAYGROUND v2 / SVG FILTER LAB</span>
+          <a href="#top">RETURN TO THE SURFACE ↑</a>
+        </footer>
+      </section>
+    </main>
+
+    <nav class="gooey-nav" aria-label="PlayGround 섹션">
+      <div class="gooey-nav__blob" aria-hidden="true"></div>
+      <div class="gooey-nav__items" id="gooey-items">
+        <button class="nav-item nav-item--1" data-section="Play" type="button">
+          <span class="nav-item__number">01</span>
+          <span class="nav-item__label">Play</span>
+        </button>
+        <button class="nav-item nav-item--2" data-section="Ideas" type="button">
+          <span class="nav-item__number">02</span>
+          <span class="nav-item__label">Ideas</span>
+        </button>
+        <button class="nav-item nav-item--3" data-section="Motion" type="button">
+          <span class="nav-item__number">03</span>
+          <span class="nav-item__label">Motion</span>
+        </button>
+        <button class="nav-item nav-item--4" data-section="Type" type="button">
+          <span class="nav-item__number">04</span>
+          <span class="nav-item__label">Type</span>
+        </button>
+        <button class="nav-item nav-item--5" data-section="Color" type="button">
+          <span class="nav-item__number">05</span>
+          <span class="nav-item__label">Color</span>
+        </button>
+        <button class="nav-item nav-item--6" data-section="About" type="button">
+          <span class="nav-item__number">06</span>
+          <span class="nav-item__label">About</span>
+        </button>
+
+        <button
+          class="menu-toggle"
+          id="menu-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="gooey-items"
+          aria-label="탐색 메뉴 열기"
+        >
+          <span class="menu-toggle__icon" aria-hidden="true"></span>
+          <span class="menu-toggle__text">MENU</span>
+        </button>
+      </div>
+    </nav>
+
+    <div class="section-indicator" aria-hidden="true">
+      <span id="section-number">00</span>
+      <span class="section-indicator__rule"></span>
+      <span id="section-name">HOME</span>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
