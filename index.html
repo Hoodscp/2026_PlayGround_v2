@@ -59,7 +59,28 @@
             mode="screen"
             result="blended-logo"
           />
-          <feComposite in="blended-logo" in2="SourceAlpha" operator="in" />
+          <feComposite
+            in="blended-logo"
+            in2="SourceAlpha"
+            operator="in"
+            result="clipped-logo"
+          />
+          <feTurbulence
+            id="logo-glitch-noise"
+            type="fractalNoise"
+            baseFrequency="0.012 0.18"
+            numOctaves="1"
+            seed="7"
+            result="glitch-noise"
+          />
+          <feDisplacementMap
+            id="logo-glitch-map"
+            in="clipped-logo"
+            in2="glitch-noise"
+            scale="0"
+            xChannelSelector="R"
+            yChannelSelector="B"
+          />
         </filter>
 
         <filter id="gooey-demo" x="-40%" y="-40%" width="180%" height="180%">
@@ -86,7 +107,7 @@
     </svg>
 
     <header class="site-header">
-      <a class="mini-mark" href="#" aria-label="PlayGround v2 홈">PG<span>°</span></a>
+      <a class="mini-mark" href="/" aria-label="PlayGround v2 홈">PG<span>°</span></a>
       <div class="header-meta">
         <span>EXPERIMENT 02</span>
         <span>SVG FILTER LAB</span>
@@ -130,6 +151,21 @@
           </p>
         </div>
 
+        <aside class="theme-controls" aria-label="메인 테마 색상">
+          <div class="theme-controls__head">
+            <span>THEME COLORS</span>
+            <button id="reset-theme" type="button">RESET</button>
+          </div>
+          <label>
+            <span>PAPER</span>
+            <input id="paper-color-control" type="color" value="#f7f7f2" />
+          </label>
+          <label>
+            <span>INK</span>
+            <input id="ink-color-control" type="color" value="#111111" />
+          </label>
+        </aside>
+
         <div class="orb orb--one" aria-hidden="true"></div>
         <div class="orb orb--two" aria-hidden="true"></div>
       </section>
@@ -142,7 +178,6 @@
             하나의 필터, 열두 가지 움직임. 포인터를 움직이고, 드래그하고,
             버튼을 눌러 각각의 Gooey 반응을 직접 확인해 보세요.
           </p>
-          <a class="back-home" href="#top">BACK TO TOP ↑</a>
         </div>
 
         <aside
@@ -414,7 +449,6 @@
 
         <footer class="motion-footer">
           <span>PLAYGROUND v2 / SVG FILTER LAB</span>
-          <a href="#top">RETURN TO THE SURFACE ↑</a>
         </footer>
       </section>
     </main>

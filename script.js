@@ -1,3 +1,4 @@
+(() => {
 const menu = document.querySelector(".gooey-nav");
 const toggle = document.querySelector("#menu-toggle");
 const items = [...document.querySelectorAll(".nav-item")];
@@ -8,7 +9,20 @@ const motionLab = document.querySelector("#motion-lab");
 const labControls = document.querySelector("#lab-controls-panel");
 const controlsTrigger = document.querySelector("#controls-trigger");
 const controlsTriggerIcon = document.querySelector("#controls-trigger-icon");
+const paperColorControl = document.querySelector("#paper-color-control");
+const inkColorControl = document.querySelector("#ink-color-control");
+const resetTheme = document.querySelector("#reset-theme");
+const heroLogo = document.querySelector(".hero-logo");
+const logoGlitchMap = document.querySelector("#logo-glitch-map");
+const logoGlitchNoise = document.querySelector("#logo-glitch-noise");
 let controlsCloseTimer;
+
+const initializationKey = motionLab
+  ? "__PLAYGROUND_MOTION_INITIALIZED__"
+  : "__PLAYGROUND_HOME_INITIALIZED__";
+
+if (window[initializationKey]) return;
+window[initializationKey] = true;
 
 const sectionCopy = {
   Play: "규칙을 잠시 내려놓고, 형태와 움직임을 자유롭게 실험하는 공간입니다.",
@@ -26,6 +40,7 @@ function setMenu(open) {
 }
 
 function setControlsOpen(open) {
+  if (!controlsTrigger || !controlsTriggerIcon) return;
   window.clearTimeout(controlsCloseTimer);
   document.body.classList.toggle("controls-open", open);
   controlsTrigger.setAttribute("aria-expanded", String(open));
@@ -33,6 +48,7 @@ function setControlsOpen(open) {
 }
 
 function scheduleControlsClose() {
+  if (!labControls || !controlsTrigger) return;
   window.clearTimeout(controlsCloseTimer);
   controlsCloseTimer = window.setTimeout(() => {
     if (!labControls.matches(":hover, :focus-within") && !controlsTrigger.matches(":hover")) {
@@ -41,18 +57,97 @@ function scheduleControlsClose() {
   }, 220);
 }
 
-controlsTrigger.addEventListener("pointerenter", () => setControlsOpen(true));
-controlsTrigger.addEventListener("pointerleave", scheduleControlsClose);
-controlsTrigger.addEventListener("click", () => {
-  setControlsOpen(!document.body.classList.contains("controls-open"));
-});
-labControls.addEventListener("pointerenter", () => {
-  window.clearTimeout(controlsCloseTimer);
-  setControlsOpen(true);
-});
-labControls.addEventListener("pointerleave", scheduleControlsClose);
-labControls.addEventListener("focusin", () => setControlsOpen(true));
-labControls.addEventListener("focusout", scheduleControlsClose);
+if (controlsTrigger && labControls) {
+  controlsTrigger.addEventListener("pointerenter", () => setControlsOpen(true));
+  controlsTrigger.addEventListener("pointerleave", scheduleControlsClose);
+  controlsTrigger.addEventListener("click", () => {
+    setControlsOpen(!document.body.classList.contains("controls-open"));
+  });
+  labControls.addEventListener("pointerenter", () => {
+    window.clearTimeout(controlsCloseTimer);
+    setControlsOpen(true);
+  });
+  labControls.addEventListener("pointerleave", scheduleControlsClose);
+  labControls.addEventListener("focusin", () => setControlsOpen(true));
+  labControls.addEventListener("focusout", scheduleControlsClose);
+}
+
+function applyTheme(paper, ink) {
+  const value = ink.replace("#", "");
+  const red = Number.parseInt(value.slice(0, 2), 16);
+  const green = Number.parseInt(value.slice(2, 4), 16);
+  const blue = Number.parseInt(value.slice(4, 6), 16);
+  const brightness = (red * 299 + green * 587 + blue * 114) / 1000;
+
+  document.documentElement.style.setProperty("--paper", paper);
+  document.documentElement.style.setProperty("--ink", ink);
+  document.documentElement.style.setProperty(
+    "--ink-contrast",
+    brightness > 160 ? "#111111" : "#ffffff",
+  );
+}
+
+const savedPaper = window.localStorage.getItem("playground-paper") || "#f7f7f2";
+const savedInk = window.localStorage.getItem("playground-ink") || "#111111";
+applyTheme(savedPaper, savedInk);
+
+if (paperColorControl && inkColorControl) {
+  paperColorControl.value = savedPaper;
+  inkColorControl.value = savedInk;
+
+  const updateTheme = () => {
+    applyTheme(paperColorControl.value, inkColorControl.value);
+    window.localStorage.setItem("playground-paper", paperColorControl.value);
+    window.localStorage.setItem("playground-ink", inkColorControl.value);
+  };
+
+  paperColorControl.addEventListener("input", updateTheme);
+  inkColorControl.addEventListener("input", updateTheme);
+  resetTheme?.addEventListener("click", () => {
+    paperColorControl.value = "#f7f7f2";
+    inkColorControl.value = "#111111";
+    updateTheme();
+  });
+}
+
+if (heroLogo && logoGlitchMap && logoGlitchNoise) {
+  const logoReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  let logoGlitchTimer;
+
+  function scheduleLogoGlitch(delay = 1800) {
+    window.clearTimeout(logoGlitchTimer);
+    if (logoReducedMotion.matches) {
+      logoGlitchMap.setAttribute("scale", "0");
+      heroLogo.removeAttribute("data-glitching");
+      return;
+    }
+
+    logoGlitchTimer = window.setTimeout(runLogoGlitch, delay);
+  }
+
+  function runLogoGlitch() {
+    const seed = String(Math.floor(Math.random() * 97) + 3);
+    const burst = [0, 16, 5, 22, 3, 13, 0];
+
+    logoGlitchNoise.setAttribute("seed", seed);
+    heroLogo.setAttribute("data-glitching", "true");
+
+    burst.forEach((scale, index) => {
+      window.setTimeout(() => {
+        logoGlitchMap.setAttribute("scale", String(scale));
+      }, index * 46);
+    });
+
+    window.setTimeout(() => {
+      logoGlitchMap.setAttribute("scale", "0");
+      heroLogo.removeAttribute("data-glitching");
+      scheduleLogoGlitch(1200 + Math.random());
+    }, burst.length * 46 + 40);
+  }
+
+  logoReducedMotion.addEventListener("change", () => scheduleLogoGlitch());
+  scheduleLogoGlitch();
+}
 
 toggle.addEventListener("click", () => {
   setMenu(!menu.classList.contains("is-open"));
@@ -68,19 +163,39 @@ items.forEach((item, index) => {
       button.setAttribute("aria-pressed", String(button === item));
     });
 
-    description.classList.add("is-changing");
-    window.setTimeout(() => {
-      description.textContent = sectionCopy[name];
-      sectionNumber.textContent = String(index + 1).padStart(2, "0");
-      sectionName.textContent = name.toUpperCase();
-      description.classList.remove("is-changing");
-    }, 180);
+    if (description) {
+      description.classList.add("is-changing");
+      window.setTimeout(() => {
+        description.textContent = sectionCopy[name];
+        sectionNumber.textContent = String(index + 1).padStart(2, "0");
+        sectionName.textContent = name.toUpperCase();
+        description.classList.remove("is-changing");
+      }, 180);
+    }
 
     if (name === "Motion") {
       setMenu(false);
+      if (motionLab) return;
+
+      const rect = item.getBoundingClientRect();
+      document.dispatchEvent(
+        new CustomEvent("playground:liquid-navigate", {
+          detail: {
+            href: "/motion",
+            x: rect.left + rect.width / 2,
+            y: rect.top + rect.height / 2,
+          },
+        }),
+      );
       window.setTimeout(() => {
-        motionLab.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 260);
+        if (window.location.pathname !== "/motion") window.location.assign("/motion");
+      }, 1400);
+    } else if (motionLab) {
+      document.dispatchEvent(
+        new CustomEvent("playground:liquid-navigate", {
+          detail: { href: `/?section=${name.toLowerCase()}` },
+        }),
+      );
     }
   });
 });
@@ -99,32 +214,9 @@ document.addEventListener("click", (event) => {
   }
 });
 
-const motionObserver = new IntersectionObserver(
-  ([entry]) => {
-    document.body.classList.toggle("in-motion", entry.isIntersecting);
-    if (!entry.isIntersecting) {
-      setControlsOpen(false);
-    }
-    if (entry.isIntersecting) {
-      sectionNumber.textContent = "03";
-      sectionName.textContent = "MOTION";
-    }
-  },
-  { threshold: 0 },
-);
-motionObserver.observe(motionLab);
-
-if (window.location.hash === "#motion-lab") {
-  window.requestAnimationFrame(() => {
-    motionLab.scrollIntoView({ behavior: "auto", block: "start" });
-  });
-}
-
-if (window.location.hash === "#demo-cursor") {
-  window.requestAnimationFrame(() => {
-    document.querySelector("#demo-cursor").scrollIntoView({ behavior: "auto", block: "start" });
-  });
-}
+if (motionLab) {
+  sectionNumber.textContent = "03";
+  sectionName.textContent = "MOTION";
 
 const cardObserver = new IntersectionObserver(
   (entries) => {
@@ -216,6 +308,9 @@ const cursorStage = document.querySelector("#cursor-stage");
 const cursorDots = [...document.querySelectorAll(".cursor-dot")];
 const cursorTarget = { x: 0, y: 0 };
 const cursorPositions = cursorDots.map(() => ({ x: 0, y: 0 }));
+const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+let cursorAnimationFrame = 0;
+let cursorStageVisible = false;
 
 function centerCursorDots() {
   const rect = cursorStage.getBoundingClientRect();
@@ -236,6 +331,7 @@ cursorStage.addEventListener("pointermove", (event) => {
 cursorStage.addEventListener("pointerleave", centerCursorDots);
 
 function animateCursor() {
+  cursorAnimationFrame = 0;
   let lead = cursorTarget;
   cursorPositions.forEach((point, index) => {
     const ease = 0.22 - index * 0.027;
@@ -245,11 +341,30 @@ function animateCursor() {
       `translate(${point.x}px, ${point.y}px) translate(-50%, -50%)`;
     lead = point;
   });
-  requestAnimationFrame(animateCursor);
+  if (cursorStageVisible && !reducedMotion.matches) {
+    cursorAnimationFrame = requestAnimationFrame(animateCursor);
+  }
+}
+
+function updateCursorAnimation() {
+  if (cursorStageVisible && !reducedMotion.matches && !cursorAnimationFrame) {
+    cursorAnimationFrame = requestAnimationFrame(animateCursor);
+  } else if ((!cursorStageVisible || reducedMotion.matches) && cursorAnimationFrame) {
+    cancelAnimationFrame(cursorAnimationFrame);
+    cursorAnimationFrame = 0;
+  }
 }
 
 centerCursorDots();
-animateCursor();
+const cursorObserver = new IntersectionObserver(
+  ([entry]) => {
+    cursorStageVisible = entry.isIntersecting;
+    updateCursorAnimation();
+  },
+  { threshold: 0.05 },
+);
+cursorObserver.observe(cursorStage);
+reducedMotion.addEventListener("change", updateCursorAnimation);
 window.addEventListener("resize", centerCursorDots);
 
 // 03 Gooey burst button
@@ -389,3 +504,5 @@ trailStage.addEventListener("pointermove", (event) => {
 
 drawElasticBridge();
 updateControls();
+}
+})();
