@@ -16,7 +16,7 @@ export function PlayPage() {
         </div>
         <footer className="play-footer">PLAYGROUND v2 / INTERACTIVE GAME LAB</footer>
       </main>
-      <GooeyNavigation current="Play" page="play" />
+      {/* <GooeyNavigation current="Play" page="play" /> */}
       <SectionIndicator number="01" name="PLAY" />
       <RouteBackButton />
     </div>
