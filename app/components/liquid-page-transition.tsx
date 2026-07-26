@@ -57,42 +57,7 @@ export function LiquidPageTransition() {
       navigate((event as CustomEvent<LiquidNavigationDetail>).detail);
     }
 
-    function handleInternalLink(event: MouseEvent) {
-      if (
-        event.defaultPrevented ||
-        event.button !== 0 ||
-        event.metaKey ||
-        event.ctrlKey ||
-        event.shiftKey ||
-        event.altKey
-      ) {
-        return;
-      }
-
-      const target = event.target as Element | null;
-      const anchor = target?.closest<HTMLAnchorElement>("a[href]");
-      if (!anchor || anchor.target === "_blank" || anchor.hasAttribute("download")) return;
-
-      const url = new URL(anchor.href, window.location.href);
-      if (
-        url.origin !== window.location.origin ||
-        url.pathname === window.location.pathname ||
-        url.hash
-      ) {
-        return;
-      }
-
-      event.preventDefault();
-      const rect = anchor.getBoundingClientRect();
-      navigate({
-        href: `${url.pathname}${url.search}${url.hash}`,
-        x: rect.left + rect.width / 2,
-        y: rect.top + rect.height / 2,
-      });
-    }
-
     document.addEventListener(NAVIGATION_EVENT, handleNavigation);
-    document.addEventListener("click", handleInternalLink);
 
     if (document.documentElement.classList.contains("liquid-transition-arriving")) {
       let storedPosition = { x: window.innerWidth / 2, y: window.innerHeight };
@@ -120,7 +85,6 @@ export function LiquidPageTransition() {
 
     return () => {
       document.removeEventListener(NAVIGATION_EVENT, handleNavigation);
-      document.removeEventListener("click", handleInternalLink);
     };
   }, []);
 

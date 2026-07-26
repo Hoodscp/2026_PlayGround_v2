@@ -1,19 +1,20 @@
-import { getHomeMarkup } from "./lib/legacy-content";
+import { HomePage as HomePageContent } from "./components/home/home-page";
+import {
+  SECTION_COPY,
+  type SectionName,
+} from "./components/navigation/sections";
 
 export const dynamic = "force-static";
 
-export default function HomePage() {
-  const markup = getHomeMarkup();
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ section?: string }>;
+}) {
+  const { section } = await searchParams;
+  const initialSection = Object.keys(SECTION_COPY).find(
+    (name) => name.toLowerCase() === section,
+  ) as SectionName | undefined;
 
-  return (
-    <>
-      <div
-        id="home-page"
-        className="route-page route-page--home"
-        suppressHydrationWarning
-        dangerouslySetInnerHTML={{ __html: markup }}
-      />
-      <script src="/legacy-script" defer />
-    </>
-  );
+  return <HomePageContent initialSection={initialSection} />;
 }

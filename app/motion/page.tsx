@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 
-import { RouteBackButton } from "../components/route-back-button";
-import { getMotionMarkup } from "../lib/legacy-content";
+import { MotionPage as MotionPageContent } from "../components/motion/motion-page";
 
 export const dynamic = "force-static";
 
@@ -11,18 +10,5 @@ export const metadata: Metadata = {
 };
 
 export default function MotionPage() {
-  const markup = getMotionMarkup();
-
-  return (
-    <>
-      <div
-        id="motion-page"
-        className="route-page route-page--motion"
-        suppressHydrationWarning
-        dangerouslySetInnerHTML={{ __html: markup }}
-      />
-      <RouteBackButton />
-      <script src="/legacy-script" defer />
-    </>
-  );
+  return <MotionPageContent />;
 }
