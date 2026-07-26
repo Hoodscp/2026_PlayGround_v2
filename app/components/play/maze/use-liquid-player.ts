@@ -9,6 +9,17 @@ export type LiquidParticle = {
   angle: number;
 };
 
+export type LiquidCollision = {
+  version: number;
+  x: number;
+  y: number;
+};
+
+export type LiquidPlayerFrame = {
+  particles: LiquidParticle[];
+  impact: number;
+};
+
 type PhysicsParticle = LiquidParticle & {
   vx: number;
   vy: number;
@@ -30,14 +41,18 @@ function particlesAt(x: number, y: number): PhysicsParticle[] {
 export function useLiquidPlayer(
   target: { x: number; y: number },
   resetVersion: number,
+  collision: LiquidCollision,
 ) {
   const targetX = target.x;
   const targetY = target.y;
   const physics = useRef(particlesAt(target.x, target.y));
   const previousReset = useRef(resetVersion);
-  const [particles, setParticles] = useState<LiquidParticle[]>(() =>
-    particlesAt(target.x, target.y),
-  );
+  const previousCollision = useRef(collision.version);
+  const impact = useRef(0);
+  const [playerFrame, setPlayerFrame] = useState<LiquidPlayerFrame>(() => ({
+    particles: particlesAt(target.x, target.y),
+    impact: 0,
+  }));
 
   useEffect(() => {
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -45,11 +60,31 @@ export function useLiquidPlayer(
 
     if (previousReset.current !== resetVersion || reduceMotion.matches) {
       previousReset.current = resetVersion;
+      previousCollision.current = collision.version;
+      impact.current = 0;
       physics.current = particlesAt(targetX, targetY);
       frame = window.requestAnimationFrame(() =>
-        setParticles(physics.current.map(({ x, y, speed, angle }) => ({ x, y, speed, angle }))),
+        setPlayerFrame({
+          particles: physics.current.map(({ x, y, speed, angle }) => ({ x, y, speed, angle })),
+          impact: 0,
+        }),
       );
       return () => window.cancelAnimationFrame(frame);
+    }
+
+    if (previousCollision.current !== collision.version) {
+      previousCollision.current = collision.version;
+      const hasImpact = collision.x !== 0 || collision.y !== 0;
+      impact.current = hasImpact ? 1 : 0;
+
+      if (hasImpact) {
+        physics.current.forEach((particle, index) => {
+          const strength = Math.max(1.8, 5.6 - index * 0.62);
+          particle.vx += collision.x * strength;
+          particle.vy += collision.y * strength;
+          particle.angle = (Math.atan2(collision.y, collision.x) * 180) / Math.PI;
+        });
+      }
     }
 
     function animate() {
@@ -75,11 +110,15 @@ export function useLiquidPlayer(
         lead = particle;
       });
 
-      setParticles(
-        physics.current.map(({ x, y, speed, angle }) => ({ x, y, speed, angle })),
-      );
+      impact.current *= 0.84;
+      if (impact.current < 0.015) impact.current = 0;
 
-      if (energy > 0.08) {
+      setPlayerFrame({
+        particles: physics.current.map(({ x, y, speed, angle }) => ({ x, y, speed, angle })),
+        impact: impact.current,
+      });
+
+      if (energy > 0.08 || impact.current > 0) {
         frame = window.requestAnimationFrame(animate);
       } else {
         physics.current.forEach((particle) => {
@@ -92,7 +131,7 @@ export function useLiquidPlayer(
 
     frame = window.requestAnimationFrame(animate);
     return () => window.cancelAnimationFrame(frame);
-  }, [resetVersion, targetX, targetY]);
+  }, [collision.version, collision.x, collision.y, resetVersion, targetX, targetY]);
 
-  return particles;
+  return playerFrame;
 }

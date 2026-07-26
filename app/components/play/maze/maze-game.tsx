@@ -1,10 +1,11 @@
 "use client";
 
-import type { KeyboardEvent, PointerEvent as ReactPointerEvent } from "react";
+import type { KeyboardEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   canMove,
+  DIRECTION,
   type Difficulty,
   type Direction,
   type MazeData,
@@ -16,6 +17,7 @@ import { useLiquidPlayer } from "./use-liquid-player";
 
 const CELL = 32;
 const PADDING = 28;
+const SWIPE_THRESHOLD = 24;
 
 const keyDirections: Record<string, Direction | undefined> = {
   ArrowUp: "north",
@@ -59,8 +61,14 @@ export function MazeGame() {
   const [moves, setMoves] = useState(0);
   const [won, setWon] = useState(false);
   const [motionReset, setMotionReset] = useState(0);
+  const [collision, setCollision] = useState({ version: 0, x: 0, y: 0 });
   const playerRef = useRef<MazePoint | null>(null);
-  const dragging = useRef(false);
+  const swipe = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    consumed: boolean;
+  } | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const successButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -71,6 +79,7 @@ export function MazeGame() {
     playerRef.current = nextMaze.start;
     setMoves(0);
     setWon(false);
+    setCollision({ version: 0, x: 0, y: 0 });
     setMotionReset((version) => version + 1);
   }, []);
 
@@ -117,48 +126,39 @@ export function MazeGame() {
   }, [maze]);
 
   const playerCenter = player ? center(player) : { x: 0, y: 0 };
-  const liquidParticles = useLiquidPlayer(playerCenter, motionReset);
+  const liquidPlayer = useLiquidPlayer(playerCenter, motionReset, collision);
+  const liquidParticles = liquidPlayer.particles;
 
   const move = useCallback(
     (direction: Direction) => {
       const current = playerRef.current;
       if (!maze || !current || won) return;
       const next = canMove(maze, current, direction);
-      if (!next) return;
+      if (!next) {
+        const delta = DIRECTION[direction];
+        setCollision((currentCollision) => ({
+          version: currentCollision.version + 1,
+          x: delta.col,
+          y: delta.row,
+        }));
+        return;
+      }
 
+      setCollision((currentCollision) =>
+        currentCollision.x === 0 && currentCollision.y === 0
+          ? currentCollision
+          : { version: currentCollision.version + 1, x: 0, y: 0 },
+      );
       playerRef.current = next;
       setPlayer(next);
       setMoves((count) => count + 1);
       if (pointKey(next) === pointKey(maze.exit)) {
         setWon(true);
-        dragging.current = false;
+        swipe.current = null;
       }
     },
     [maze, won],
   );
-
-  function moveToward(target: MazePoint) {
-    const current = playerRef.current;
-    if (!current) return;
-    const rowDelta = target.row - current.row;
-    const colDelta = target.col - current.col;
-    if (rowDelta === -1 && colDelta === 0) move("north");
-    if (rowDelta === 1 && colDelta === 0) move("south");
-    if (rowDelta === 0 && colDelta === -1) move("west");
-    if (rowDelta === 0 && colDelta === 1) move("east");
-  }
-
-  function pointFromPointer(event: ReactPointerEvent<SVGSVGElement>) {
-    if (!maze) return null;
-    const rect = event.currentTarget.getBoundingClientRect();
-    const viewSize = maze.size * CELL + PADDING * 2;
-    const x = ((event.clientX - rect.left) / rect.width) * viewSize - PADDING;
-    const y = ((event.clientY - rect.top) / rect.height) * viewSize - PADDING;
-    return {
-      col: Math.max(0, Math.min(maze.size - 1, Math.floor(x / CELL))),
-      row: Math.max(0, Math.min(maze.size - 1, Math.floor(y / CELL))),
-    };
-  }
 
   function restart() {
     if (!maze) return;
@@ -166,6 +166,7 @@ export function MazeGame() {
     playerRef.current = maze.start;
     setMoves(0);
     setWon(false);
+    setCollision({ version: 0, x: 0, y: 0 });
     setMotionReset((version) => version + 1);
     svgRef.current?.focus();
   }
@@ -185,6 +186,32 @@ export function MazeGame() {
   const boardSize = maze.size * CELL + PADDING * 2;
   const startCenter = center(maze.start);
   const portal = exitPosition(maze);
+  const playerCell = {
+    left: PADDING + player.col * CELL,
+    top: PADDING + player.row * CELL,
+    right: PADDING + (player.col + 1) * CELL,
+    bottom: PADDING + (player.row + 1) * CELL,
+  };
+  const collisionClip = {
+    x: -boardSize,
+    y: -boardSize,
+    width: boardSize * 3,
+    height: boardSize * 3,
+  };
+
+  if (collision.x < 0) {
+    collisionClip.x = playerCell.left + 1.5;
+    collisionClip.width = boardSize * 2;
+  } else if (collision.x > 0) {
+    collisionClip.width = boardSize + playerCell.right - 1.5;
+  }
+
+  if (collision.y < 0) {
+    collisionClip.y = playerCell.top + 1.5;
+    collisionClip.height = boardSize * 2;
+  } else if (collision.y > 0) {
+    collisionClip.height = boardSize + playerCell.bottom - 1.5;
+  }
 
   return (
     <section className="maze-game" aria-labelledby="maze-game-title">
@@ -235,22 +262,44 @@ export function MazeGame() {
             move(direction);
           }}
           onPointerDown={(event) => {
-            dragging.current = true;
+            swipe.current = {
+              pointerId: event.pointerId,
+              startX: event.clientX,
+              startY: event.clientY,
+              consumed: false,
+            };
             event.currentTarget.setPointerCapture(event.pointerId);
             event.currentTarget.focus();
-            const point = pointFromPointer(event);
-            if (point) moveToward(point);
           }}
           onPointerMove={(event) => {
-            if (!dragging.current) return;
-            const point = pointFromPointer(event);
-            if (point) moveToward(point);
+            const gesture = swipe.current;
+            if (
+              !gesture ||
+              gesture.pointerId !== event.pointerId ||
+              gesture.consumed
+            ) {
+              return;
+            }
+
+            const x = event.clientX - gesture.startX;
+            const y = event.clientY - gesture.startY;
+            if (Math.max(Math.abs(x), Math.abs(y)) < SWIPE_THRESHOLD) return;
+
+            gesture.consumed = true;
+            if (Math.abs(x) > Math.abs(y)) {
+              move(x > 0 ? "east" : "west");
+            } else {
+              move(y > 0 ? "south" : "north");
+            }
           }}
           onPointerUp={() => {
-            dragging.current = false;
+            swipe.current = null;
           }}
           onPointerCancel={() => {
-            dragging.current = false;
+            swipe.current = null;
+          }}
+          onLostPointerCapture={() => {
+            swipe.current = null;
           }}
         >
           <defs>
@@ -258,6 +307,9 @@ export function MazeGame() {
               <stop offset="0%" stopColor="var(--paper)" stopOpacity="0.1" />
               <stop offset="100%" stopColor="var(--paper)" stopOpacity="0" />
             </radialGradient>
+            <clipPath id="maze-player-wall-clip" clipPathUnits="userSpaceOnUse">
+              <rect {...collisionClip} />
+            </clipPath>
             <filter id="maze-player-goo" x="-120%" y="-120%" width="340%" height="340%">
               <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur" />
               <feColorMatrix
@@ -313,18 +365,23 @@ export function MazeGame() {
             <circle cx={portal.x} cy={portal.y} r="9" />
           </g>
 
-          <g className="maze-player" filter="url(#maze-player-goo)">
+          <g
+            className="maze-player"
+            filter="url(#maze-player-goo)"
+            clipPath={liquidPlayer.impact > 0 ? "url(#maze-player-wall-clip)" : undefined}
+          >
             {[...liquidParticles].reverse().map((particle, reverseIndex) => {
               const index = liquidParticles.length - reverseIndex - 1;
               if (index === 0) {
                 const stretch = Math.min(9, particle.speed * 0.7);
+                const collisionSquash = liquidPlayer.impact * 8;
                 return (
                   <ellipse
                     key="player-head"
                     cx={particle.x}
                     cy={particle.y}
-                    rx={14 + stretch}
-                    ry={Math.max(9, 14 - stretch * 0.38)}
+                    rx={Math.max(8.5, 14 + stretch - collisionSquash)}
+                    ry={Math.max(9, 14 - stretch * 0.38 + collisionSquash * 0.92)}
                     transform={`rotate(${particle.angle} ${particle.x} ${particle.y})`}
                   />
                 );
@@ -363,7 +420,7 @@ export function MazeGame() {
       </div>
 
       <p id="maze-instructions" className="maze-instructions">
-        KEYBOARD — ARROW KEYS / WASD · MOUSE — CLICK OR DRAG THROUGH AN OPEN PATH
+        KEYBOARD — ARROW KEYS / WASD · POINTER — SWIPE UP / DOWN / LEFT / RIGHT
       </p>
       <p id="maze-live-status" className="sr-only" aria-live="polite">
         {won ? `미로 탈출 성공. ${moves}번 이동했습니다.` : `현재 ${player.row + 1}행 ${player.col + 1}열`}
