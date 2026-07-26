@@ -18,6 +18,7 @@ import { useLiquidPlayer } from "./use-liquid-player";
 const CELL = 32;
 const PADDING = 28;
 const SWIPE_THRESHOLD = 24;
+const WALL_CLIP_INSET = 1.5;
 
 const keyDirections: Record<string, Direction | undefined> = {
   ArrowUp: "north",
@@ -45,6 +46,67 @@ function center(point: MazePoint) {
   };
 }
 
+function liquidClipRects(maze: MazeData, points: MazePoint[]) {
+  const uniquePoints = [...new Map(points.map((point) => [pointKey(point), point])).values()];
+
+  return uniquePoints.flatMap((point) => {
+    const left = PADDING + point.col * CELL;
+    const top = PADDING + point.row * CELL;
+    const right = left + CELL;
+    const bottom = top + CELL;
+    const innerSize = CELL - WALL_CLIP_INSET * 2;
+    const walls = maze.walls[point.row][point.col];
+    const rects = [
+      {
+        key: `${pointKey(point)}-cell`,
+        x: left + WALL_CLIP_INSET,
+        y: top + WALL_CLIP_INSET,
+        width: innerSize,
+        height: innerSize,
+      },
+    ];
+
+    if (!(walls & WALL.north)) {
+      rects.push({
+        key: `${pointKey(point)}-north`,
+        x: left + WALL_CLIP_INSET,
+        y: top - CELL,
+        width: innerSize,
+        height: CELL + WALL_CLIP_INSET,
+      });
+    }
+    if (!(walls & WALL.east)) {
+      rects.push({
+        key: `${pointKey(point)}-east`,
+        x: right - WALL_CLIP_INSET,
+        y: top + WALL_CLIP_INSET,
+        width: CELL + WALL_CLIP_INSET,
+        height: innerSize,
+      });
+    }
+    if (!(walls & WALL.south)) {
+      rects.push({
+        key: `${pointKey(point)}-south`,
+        x: left + WALL_CLIP_INSET,
+        y: bottom - WALL_CLIP_INSET,
+        width: innerSize,
+        height: CELL + WALL_CLIP_INSET,
+      });
+    }
+    if (!(walls & WALL.west)) {
+      rects.push({
+        key: `${pointKey(point)}-west`,
+        x: left - CELL,
+        y: top + WALL_CLIP_INSET,
+        width: CELL + WALL_CLIP_INSET,
+        height: innerSize,
+      });
+    }
+
+    return rects;
+  });
+}
+
 function exitPosition(maze: MazeData) {
   const point = center(maze.exit);
   if (maze.exit.side === "north") point.y = PADDING - 10;
@@ -62,6 +124,7 @@ export function MazeGame() {
   const [won, setWon] = useState(false);
   const [motionReset, setMotionReset] = useState(0);
   const [collision, setCollision] = useState({ version: 0, x: 0, y: 0 });
+  const [liquidCells, setLiquidCells] = useState<MazePoint[]>([]);
   const playerRef = useRef<MazePoint | null>(null);
   const swipe = useRef<{
     pointerId: number;
@@ -80,6 +143,7 @@ export function MazeGame() {
     setMoves(0);
     setWon(false);
     setCollision({ version: 0, x: 0, y: 0 });
+    setLiquidCells([nextMaze.start]);
     setMotionReset((version) => version + 1);
   }, []);
 
@@ -150,6 +214,7 @@ export function MazeGame() {
           : { version: currentCollision.version + 1, x: 0, y: 0 },
       );
       playerRef.current = next;
+      setLiquidCells([current, next]);
       setPlayer(next);
       setMoves((count) => count + 1);
       if (pointKey(next) === pointKey(maze.exit)) {
@@ -167,6 +232,7 @@ export function MazeGame() {
     setMoves(0);
     setWon(false);
     setCollision({ version: 0, x: 0, y: 0 });
+    setLiquidCells([maze.start]);
     setMotionReset((version) => version + 1);
     svgRef.current?.focus();
   }
@@ -186,32 +252,10 @@ export function MazeGame() {
   const boardSize = maze.size * CELL + PADDING * 2;
   const startCenter = center(maze.start);
   const portal = exitPosition(maze);
-  const playerCell = {
-    left: PADDING + player.col * CELL,
-    top: PADDING + player.row * CELL,
-    right: PADDING + (player.col + 1) * CELL,
-    bottom: PADDING + (player.row + 1) * CELL,
-  };
-  const collisionClip = {
-    x: -boardSize,
-    y: -boardSize,
-    width: boardSize * 3,
-    height: boardSize * 3,
-  };
-
-  if (collision.x < 0) {
-    collisionClip.x = playerCell.left + 1.5;
-    collisionClip.width = boardSize * 2;
-  } else if (collision.x > 0) {
-    collisionClip.width = boardSize + playerCell.right - 1.5;
-  }
-
-  if (collision.y < 0) {
-    collisionClip.y = playerCell.top + 1.5;
-    collisionClip.height = boardSize * 2;
-  } else if (collision.y > 0) {
-    collisionClip.height = boardSize + playerCell.bottom - 1.5;
-  }
+  const playerClipRects = liquidClipRects(
+    maze,
+    liquidCells.length ? liquidCells : [player],
+  );
 
   return (
     <section className="maze-game" aria-labelledby="maze-game-title">
@@ -307,8 +351,10 @@ export function MazeGame() {
               <stop offset="0%" stopColor="var(--paper)" stopOpacity="0.1" />
               <stop offset="100%" stopColor="var(--paper)" stopOpacity="0" />
             </radialGradient>
-            <clipPath id="maze-player-wall-clip" clipPathUnits="userSpaceOnUse">
-              <rect {...collisionClip} />
+            <clipPath id="maze-player-path-clip" clipPathUnits="userSpaceOnUse">
+              {playerClipRects.map(({ key, ...rect }) => (
+                <rect key={key} {...rect} />
+              ))}
             </clipPath>
             <filter id="maze-player-goo" x="-120%" y="-120%" width="340%" height="340%">
               <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur" />
@@ -368,7 +414,7 @@ export function MazeGame() {
           <g
             className="maze-player"
             filter="url(#maze-player-goo)"
-            clipPath={liquidPlayer.impact > 0 ? "url(#maze-player-wall-clip)" : undefined}
+            clipPath="url(#maze-player-path-clip)"
           >
             {[...liquidParticles].reverse().map((particle, reverseIndex) => {
               const index = liquidParticles.length - reverseIndex - 1;
