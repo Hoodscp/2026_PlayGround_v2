@@ -559,7 +559,8 @@ body:has(.route-page--play) .mini-mark span {
   }
 
   .route-page--play .gooey-nav {
-    transform: translate(173px, 173px) scale(0.84);
+    opacity: 1;
+    transform: none;
   }
 }
 

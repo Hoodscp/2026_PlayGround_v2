@@ -1802,6 +1802,52 @@ body:has(.route-page--motion) .mini-mark span {
 }
 
 @media (max-width: 820px) {
+  .route-page--home .hero {
+    padding-top: clamp(154px, 22vh, 205px);
+  }
+
+  .gooey-nav {
+    inset: 0;
+    width: 100vw;
+    height: 100svh;
+    opacity: 1;
+    transform: none;
+    transform-origin: center;
+  }
+
+  .gooey-nav .gooey-nav__blob,
+  .gooey-nav .menu-toggle,
+  .gooey-nav .nav-item {
+    top: calc(74% - 47px);
+    left: calc(50% - 47px);
+    right: auto;
+    bottom: auto;
+  }
+
+  .gooey-nav.is-open .nav-item--1 {
+    transform: translate3d(-110px, 84px, 0) scale(0.7);
+  }
+
+  .gooey-nav.is-open .nav-item--2 {
+    transform: translate3d(0, 128px, 0) scale(0.7);
+  }
+
+  .gooey-nav.is-open .nav-item--3 {
+    transform: translate3d(110px, 84px, 0) scale(0.7);
+  }
+
+  .gooey-nav.is-open .nav-item--4 {
+    transform: translate3d(-110px, -72px, 0) scale(0.7);
+  }
+
+  .gooey-nav.is-open .nav-item--5 {
+    transform: translate3d(0, -126px, 0) scale(0.7);
+  }
+
+  .gooey-nav.is-open .nav-item--6 {
+    transform: translate3d(110px, -72px, 0) scale(0.7);
+  }
+
   .route-page--motion .lab-controls {
     position: fixed;
     z-index: 30;
