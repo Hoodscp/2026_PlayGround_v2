@@ -79,7 +79,7 @@ function MotionLabContent() {
           </footer>
         </section>
       </main>
-      <GooeyNavigation current="Motion" motionPage />
+      <GooeyNavigation current="Motion" page="motion" />
       <SectionIndicator number="03" name="MOTION" />
     </>
   );

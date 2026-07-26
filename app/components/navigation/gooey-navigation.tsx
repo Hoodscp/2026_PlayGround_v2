@@ -8,11 +8,11 @@ import { SECTIONS, type SectionName } from "./sections";
 export function GooeyNavigation({
   current,
   onSectionChange,
-  motionPage = false,
+  page = "home",
 }: {
   current?: SectionName;
   onSectionChange?: (section: SectionName, index: number) => void;
-  motionPage?: boolean;
+  page?: "home" | "motion" | "play";
 }) {
   const [open, setOpen] = useState(false);
   const navRef = useRef<HTMLElement>(null);
@@ -41,15 +41,21 @@ export function GooeyNavigation({
   function select(section: SectionName, index: number, button: HTMLButtonElement) {
     onSectionChange?.(section, index);
 
-    if (section === "Motion") {
+    if (section === "Play" || section === "Motion") {
       setOpen(false);
-      if (motionPage) return;
+      const destination = section === "Play" ? "/play" : "/motion";
+      if (
+        (page === "play" && section === "Play") ||
+        (page === "motion" && section === "Motion")
+      ) {
+        return;
+      }
       const rect = button.getBoundingClientRect();
-      requestLiquidNavigation("/motion", {
+      requestLiquidNavigation(destination, {
         clientX: rect.left + rect.width / 2,
         clientY: rect.top + rect.height / 2,
       });
-    } else if (motionPage) {
+    } else if (page !== "home") {
       requestLiquidNavigation(`/?section=${section.toLowerCase()}`);
     }
   }

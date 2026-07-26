@@ -1,0 +1,571 @@
+body:has(.route-page--play) {
+  background: var(--ink);
+}
+
+body:has(.route-page--play) .site-header,
+.route-page--play .section-indicator {
+  color: var(--paper);
+  mix-blend-mode: normal;
+}
+
+body:has(.route-page--play) .mini-mark span {
+  color: var(--paper);
+}
+
+.route-page--play {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 18% 12%, color-mix(in srgb, var(--paper) 9%, transparent), transparent 30%),
+    var(--ink);
+  color: var(--paper);
+}
+
+.route-page--play .gooey-nav {
+  opacity: 0.28;
+  transform: translate(184px, 184px) scale(0.72);
+}
+
+.route-page--play .gooey-nav:hover,
+.route-page--play .gooey-nav:focus-within {
+  opacity: 1;
+}
+
+.play-page {
+  width: 100%;
+  overflow: clip;
+  padding: 150px clamp(24px, 6vw, 96px) 120px;
+}
+
+.play-kicker {
+  margin: 0;
+  color: var(--acid);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+}
+
+.game-select {
+  max-width: 1320px;
+  margin: 0 auto;
+}
+
+.game-select__intro {
+  display: grid;
+  margin-bottom: 76px;
+  grid-template-columns: 0.55fr 2fr 0.9fr;
+  gap: 30px;
+  align-items: end;
+}
+
+.game-select__intro h1 {
+  margin: 0;
+  font: 500 clamp(64px, 9vw, 142px)/0.82 "Manrope Variable", sans-serif;
+  letter-spacing: -0.085em;
+}
+
+.game-select__intro > p:last-child {
+  max-width: 330px;
+  margin: 0;
+  color: color-mix(in srgb, var(--paper) 62%, transparent);
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.game-select__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid color-mix(in srgb, var(--paper) 22%, transparent);
+  border-left: 1px solid color-mix(in srgb, var(--paper) 22%, transparent);
+}
+
+.game-card {
+  position: relative;
+  min-width: 0;
+  padding: 0 0 24px;
+  overflow: hidden;
+  border: 0;
+  border-right: 1px solid color-mix(in srgb, var(--paper) 22%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--paper) 22%, transparent);
+  background: transparent;
+  color: var(--paper);
+  text-align: left;
+  transition:
+    background 240ms ease,
+    color 240ms ease,
+    transform 240ms ease;
+}
+
+.game-card:disabled {
+  color: color-mix(in srgb, var(--paper) 36%, transparent);
+}
+
+.game-card--ready {
+  cursor: pointer;
+}
+
+.game-card--ready:hover,
+.game-card--ready:focus-visible {
+  z-index: 2;
+  outline: none;
+  background: var(--paper);
+  color: var(--ink);
+  transform: translateY(-5px);
+}
+
+.game-card--ready:focus-visible {
+  box-shadow: inset 0 0 0 3px var(--acid);
+}
+
+.game-card__visual {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9.5;
+}
+
+.game-card__blob {
+  fill: currentColor;
+  opacity: 0.82;
+  transform-origin: center;
+}
+
+.game-card--ready .game-card__blob--a {
+  animation: play-blob-a 4.8s ease-in-out infinite alternate;
+}
+
+.game-card--ready .game-card__blob--b {
+  animation: play-blob-b 3.7s ease-in-out infinite alternate;
+}
+
+.game-card__blob--c {
+  opacity: 0.45;
+}
+
+.game-card__trace {
+  fill: none;
+  stroke: var(--acid);
+  stroke-dasharray: 8 9;
+  stroke-linecap: round;
+  stroke-width: 2;
+}
+
+.game-card__visual text {
+  fill: currentColor;
+  font: 600 11px "DM Sans Variable", sans-serif;
+  letter-spacing: 0.14em;
+}
+
+.game-card__meta,
+.game-card__description {
+  display: flex;
+  padding: 0 24px;
+}
+
+.game-card__meta {
+  justify-content: space-between;
+  gap: 14px;
+  align-items: baseline;
+}
+
+.game-card__meta strong {
+  font: 600 18px "Manrope Variable", sans-serif;
+}
+
+.game-card__meta > span {
+  color: var(--acid);
+  font-size: 7px;
+  letter-spacing: 0.12em;
+}
+
+.game-card__description {
+  max-width: 310px;
+  min-height: 46px;
+  margin-top: 14px;
+  color: color-mix(in srgb, var(--paper) 56%, transparent);
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+.game-card--ready:hover .game-card__description,
+.game-card--ready:focus-visible .game-card__description {
+  color: color-mix(in srgb, var(--ink) 68%, transparent);
+}
+
+.game-card:disabled .game-card__description {
+  color: color-mix(in srgb, var(--paper) 28%, transparent);
+}
+
+.play-game-anchor {
+  max-width: 1320px;
+  margin: 150px auto 0;
+  scroll-margin-top: 30px;
+}
+
+.maze-game {
+  position: relative;
+  padding-top: 42px;
+  border-top: 1px solid color-mix(in srgb, var(--paper) 28%, transparent);
+}
+
+.maze-game__bar {
+  display: grid;
+  margin-bottom: 38px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 32px;
+  align-items: end;
+}
+
+.maze-game__bar h2 {
+  margin: 14px 0 0;
+  font: 500 clamp(44px, 6vw, 90px)/0.92 "Manrope Variable", sans-serif;
+  letter-spacing: -0.06em;
+}
+
+.maze-difficulty {
+  display: grid;
+  min-width: min(460px, 100%);
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.maze-difficulty button,
+.maze-actions button,
+.maze-success button {
+  border: 1px solid color-mix(in srgb, var(--paper) 28%, transparent);
+  background: transparent;
+  color: var(--paper);
+  cursor: pointer;
+  font: 600 9px "DM Sans Variable", sans-serif;
+  letter-spacing: 0.16em;
+}
+
+.maze-difficulty button {
+  min-height: 58px;
+  padding: 10px 12px;
+}
+
+.maze-difficulty button + button {
+  border-left: 0;
+}
+
+.maze-difficulty button span {
+  display: block;
+  margin-top: 6px;
+  color: color-mix(in srgb, currentColor 50%, transparent);
+  font-size: 7px;
+}
+
+.maze-difficulty button.is-active {
+  border-color: var(--acid);
+  background: var(--acid);
+  color: #111;
+}
+
+.maze-game__status {
+  display: flex;
+  justify-content: space-between;
+  padding: 11px 14px;
+  border: 1px solid color-mix(in srgb, var(--paper) 24%, transparent);
+  border-bottom: 0;
+  color: color-mix(in srgb, var(--paper) 58%, transparent);
+  font-size: 8px;
+  letter-spacing: 0.14em;
+}
+
+.maze-board-shell {
+  position: relative;
+  min-height: 520px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--paper) 24%, transparent);
+  background:
+    linear-gradient(color-mix(in srgb, var(--paper) 3%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--paper) 3%, transparent) 1px, transparent 1px),
+    #090909;
+  background-size: 24px 24px;
+}
+
+.maze-board {
+  display: block;
+  width: min(100%, 920px);
+  max-height: min(78vh, 920px);
+  margin: 0 auto;
+  touch-action: none;
+  user-select: none;
+}
+
+.maze-board:focus-visible {
+  outline: 2px solid var(--acid);
+  outline-offset: -4px;
+}
+
+.maze-board__floor {
+  fill: #0d0d0d;
+}
+
+.maze-board__aura {
+  fill: url("#maze-floor-light");
+}
+
+.maze-walls {
+  stroke: color-mix(in srgb, var(--paper) 74%, transparent);
+  stroke-linecap: round;
+  stroke-width: 2.3;
+}
+
+.maze-start circle:first-child {
+  fill: var(--paper);
+  opacity: 0.12;
+}
+
+.maze-start circle:last-child {
+  fill: none;
+  stroke: var(--paper);
+  stroke-dasharray: 2 6;
+  stroke-width: 1;
+  animation: maze-start-spin 7s linear infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.maze-exit circle:first-child {
+  fill: var(--acid);
+  opacity: 0.28;
+}
+
+.maze-exit circle:last-child {
+  fill: var(--acid);
+}
+
+.maze-player {
+  fill: var(--paper);
+  pointer-events: none;
+}
+
+.maze-player__spark {
+  fill: var(--acid);
+}
+
+.maze-instructions {
+  margin: 14px 0 0;
+  color: color-mix(in srgb, var(--paper) 48%, transparent);
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  text-align: center;
+}
+
+.maze-actions {
+  display: grid;
+  max-width: 620px;
+  margin: 38px auto 0;
+  grid-template-columns: 1fr 1fr;
+}
+
+.maze-actions button {
+  min-height: 62px;
+}
+
+.maze-actions button + button {
+  border-left: 0;
+}
+
+.maze-actions button:hover,
+.maze-actions button:focus-visible,
+.maze-success button:hover,
+.maze-success button:focus-visible {
+  outline: none;
+  border-color: var(--acid);
+  background: var(--acid);
+  color: #111;
+}
+
+.maze-actions button span {
+  display: block;
+  margin-top: 5px;
+  color: color-mix(in srgb, currentColor 55%, transparent);
+  font-size: 7px;
+}
+
+.maze-success {
+  position: absolute;
+  z-index: 4;
+  top: 50%;
+  left: 50%;
+  width: min(440px, calc(100% - 40px));
+  padding: 38px;
+  border: 1px solid var(--acid);
+  background: color-mix(in srgb, var(--ink) 92%, transparent);
+  color: var(--paper);
+  text-align: center;
+  transform: translate(-50%, -50%);
+  backdrop-filter: blur(18px);
+}
+
+.maze-success > span {
+  color: var(--acid);
+  font-size: 8px;
+  letter-spacing: 0.2em;
+}
+
+.maze-success h3 {
+  margin: 14px 0 8px;
+  font: 600 clamp(40px, 7vw, 68px)/0.95 "Manrope Variable", sans-serif;
+  letter-spacing: -0.055em;
+}
+
+.maze-success p {
+  color: color-mix(in srgb, var(--paper) 62%, transparent);
+  font-size: 12px;
+}
+
+.maze-success button {
+  min-height: 48px;
+  margin-top: 18px;
+  padding: 0 20px;
+}
+
+.maze-loading {
+  display: grid;
+  min-height: 520px;
+  place-items: center;
+  color: var(--acid);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+}
+
+.play-footer {
+  max-width: 1320px;
+  margin: 110px auto 0;
+  padding-top: 18px;
+  border-top: 1px solid color-mix(in srgb, var(--paper) 20%, transparent);
+  color: color-mix(in srgb, var(--paper) 40%, transparent);
+  font-size: 8px;
+  letter-spacing: 0.15em;
+}
+
+@keyframes play-blob-a {
+  to {
+    transform: translate(14px, -7px) scale(1.08);
+  }
+}
+
+@keyframes play-blob-b {
+  to {
+    transform: translate(-18px, 10px) scale(0.92);
+  }
+}
+
+@keyframes maze-start-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 980px) {
+  .game-select__intro {
+    grid-template-columns: 1fr;
+  }
+
+  .game-select__intro h1 {
+    max-width: 820px;
+  }
+
+  .game-select__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .maze-game__bar {
+    grid-template-columns: 1fr;
+  }
+
+  .maze-difficulty {
+    width: 100%;
+  }
+}
+
+@media (max-width: 700px) {
+  .play-page {
+    padding: 130px 16px 90px;
+  }
+
+  .game-select__intro {
+    margin-bottom: 48px;
+  }
+
+  .game-select__intro h1 {
+    font-size: clamp(56px, 20vw, 82px);
+  }
+
+  .game-select__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .game-card__visual {
+    aspect-ratio: 16 / 7.8;
+  }
+
+  .play-game-anchor {
+    margin-top: 100px;
+    scroll-margin-top: 18px;
+  }
+
+  .maze-game {
+    padding-top: 30px;
+  }
+
+  .maze-game__bar h2 {
+    font-size: clamp(42px, 14vw, 62px);
+  }
+
+  .maze-difficulty {
+    min-width: 0;
+  }
+
+  .maze-difficulty button {
+    min-height: 54px;
+    padding: 8px 4px;
+    font-size: 7px;
+  }
+
+  .maze-game__status {
+    gap: 12px;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .maze-board-shell,
+  .maze-loading {
+    min-height: 358px;
+  }
+
+  .maze-board {
+    width: 100%;
+    max-height: 72vh;
+  }
+
+  .maze-instructions {
+    padding: 0 20px;
+    line-height: 1.7;
+  }
+
+  .maze-actions {
+    margin-top: 28px;
+  }
+
+  .maze-actions button {
+    min-height: 58px;
+    font-size: 7px;
+  }
+
+  .maze-success {
+    padding: 28px 18px;
+  }
+
+  .route-page--play .gooey-nav {
+    transform: translate(173px, 173px) scale(0.84);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-card__blob,
+  .maze-start circle:last-child {
+    animation: none;
+  }
+}
