@@ -9,19 +9,34 @@ const games = [
     type: "KEYBOARD + POINTER",
     description: "중앙에서 시작해 매번 달라지는 액체 미로의 출구를 찾으세요.",
     ready: true,
+    targetId: "maze-escape",
   },
-  { number: "02", title: "Orbit Catch", type: "COMING SOON", description: "회전하는 궤도 사이의 신호를 포착합니다.", ready: false },
+  {
+    number: "02",
+    title: "Blob.io Liquid",
+    type: "MULTIPLAYER ARENA",
+    description: "닉네임을 설정하고 액체 세포를 키워 다른 유저와 실시간 대전하세요.",
+    ready: true,
+    targetId: "blob-liquid",
+  },
   { number: "03", title: "Blob Stack", type: "COMING SOON", description: "흐르는 형태를 무너지지 않게 쌓아 올립니다.", ready: false },
   { number: "04", title: "Echo Type", type: "COMING SOON", description: "사라지는 글자의 잔상을 기억하고 입력합니다.", ready: false },
   { number: "05", title: "Color Relay", type: "COMING SOON", description: "혼합된 색의 순서를 빠르게 따라갑니다.", ready: false },
   { number: "06", title: "Gravity Draw", type: "COMING SOON", description: "중력장을 그려 방울을 목적지로 보냅니다.", ready: false },
 ] as const;
 
-export function GameSelector({ gameTargetId }: { gameTargetId: string }) {
+export function GameSelector({
+  mazeTargetId,
+  blobTargetId,
+}: {
+  mazeTargetId?: string;
+  blobTargetId?: string;
+}) {
   const headingRef = useRef<HTMLHeadingElement>(null);
 
-  function openMaze() {
-    document.getElementById(gameTargetId)?.scrollIntoView({
+  function scrollToGame(targetId?: string) {
+    if (!targetId) return;
+    document.getElementById(targetId)?.scrollIntoView({
       behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
         ? "auto"
         : "smooth",
@@ -39,8 +54,8 @@ export function GameSelector({ gameTargetId }: { gameTargetId: string }) {
           experiment.
         </h1>
         <p>
-          키보드와 포인터로 반응하는 작은 게임 모음입니다. 첫 번째 실험,
-          Maze Escape부터 시작합니다.
+          키보드와 포인터로 반응하는 인터랙티브 실험실입니다. Maze Escape와 
+          멀티플레이 대전 Blob.io Liquid를 즐겨보세요.
         </p>
       </div>
 
@@ -56,7 +71,14 @@ export function GameSelector({ gameTargetId }: { gameTargetId: string }) {
                 ? `${game.number} ${game.title} 시작`
                 : `${game.number} ${game.title}, 준비 중`
             }
-            onClick={game.ready ? openMaze : undefined}
+            onClick={
+              game.ready
+                ? () =>
+                    scrollToGame(
+                      game.targetId === "blob-liquid" ? blobTargetId : mazeTargetId
+                    )
+                : undefined
+            }
           >
             <svg
               className="game-card__visual"
