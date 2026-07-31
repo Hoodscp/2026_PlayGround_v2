@@ -112,6 +112,12 @@ body:has(.route-page--play) .mini-mark span {
   transform: translateY(-5px);
 }
 
+.game-card.is-active {
+  z-index: 2;
+  border-color: var(--acid);
+  box-shadow: inset 0 0 0 2px var(--acid);
+}
+
 .game-card--ready:focus-visible {
   box-shadow: inset 0 0 0 3px var(--acid);
 }
@@ -577,7 +583,6 @@ body:has(.route-page--play) .mini-mark span {
 
 .blob-game {
   position: relative;
-  margin-top: 140px;
   padding-top: 42px;
   border-top: 1px solid color-mix(in srgb, var(--paper) 28%, transparent);
 }
@@ -596,22 +601,54 @@ body:has(.route-page--play) .mini-mark span {
   letter-spacing: -0.06em;
 }
 
-.blob-game__subinfo {
-  max-width: 380px;
-  text-align: right;
+.blob-mode-selector {
+  display: grid;
+  min-width: min(440px, 100%);
+  grid-template-columns: repeat(2, 1fr);
 }
 
-.blob-game__subinfo span {
-  color: var(--acid);
-  font-size: 8px;
-  letter-spacing: 0.18em;
+.blob-mode-selector button,
+.blob-actions button {
+  border: 1px solid color-mix(in srgb, var(--paper) 28%, transparent);
+  background: transparent;
+  color: var(--paper);
+  cursor: pointer;
+  font: 600 9px "DM Sans Variable", sans-serif;
+  letter-spacing: 0.16em;
+  transition: all 200ms ease;
 }
 
-.blob-game__subinfo p {
-  margin: 8px 0 0;
+.blob-mode-selector button {
+  min-height: 58px;
+  padding: 10px 12px;
+}
+
+.blob-mode-selector button + button {
+  border-left: 0;
+}
+
+.blob-mode-selector button span {
+  display: block;
+  margin-top: 6px;
+  color: color-mix(in srgb, currentColor 50%, transparent);
+  font-size: 7px;
+}
+
+.blob-mode-selector button.is-active {
+  border-color: var(--acid);
+  background: var(--acid);
+  color: #111;
+}
+
+.blob-game__status {
+  display: flex;
+  justify-content: space-between;
+  padding: 11px 14px;
+  border: 1px solid color-mix(in srgb, var(--paper) 24%, transparent);
+  border-bottom: 0;
   color: color-mix(in srgb, var(--paper) 58%, transparent);
-  font-size: 12px;
-  line-height: 1.6;
+  font-size: 8px;
+  letter-spacing: 0.14em;
 }
 
 .blob-board-shell {
@@ -620,7 +657,11 @@ body:has(.route-page--play) .mini-mark span {
   height: clamp(540px, 75vh, 840px);
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--paper) 24%, transparent);
-  background: #090a0f;
+  background:
+    linear-gradient(color-mix(in srgb, var(--paper) 3%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--paper) 3%, transparent) 1px, transparent 1px),
+    #090909;
+  background-size: 24px 24px;
 }
 
 .blob-canvas-wrapper {
@@ -634,9 +675,25 @@ body:has(.route-page--play) .mini-mark span {
 }
 
 .blob-canvas {
+  position: absolute;
+  inset: 0;
   display: block;
   width: 100%;
   height: 100%;
+}
+
+.blob-canvas--bg {
+  z-index: 1;
+}
+
+.blob-canvas--blobs {
+  z-index: 2;
+  filter: url("#blob-gooey-filter");
+  will-change: filter, transform;
+}
+
+.blob-canvas--labels {
+  z-index: 3;
 }
 
 .blob-ui-overlay {
@@ -659,9 +716,9 @@ body:has(.route-page--play) .mini-mark span {
   right: 24px;
   width: 220px;
   padding: 16px 20px;
-  border: 1px solid color-mix(in srgb, var(--paper) 20%, transparent);
-  background: color-mix(in srgb, var(--ink) 85%, transparent);
-  backdrop-filter: blur(12px);
+  border: 1px solid color-mix(in srgb, var(--paper) 24%, transparent);
+  background: color-mix(in srgb, var(--ink) 88%, transparent);
+  backdrop-filter: blur(16px);
   pointer-events: none;
 }
 
@@ -721,14 +778,14 @@ body:has(.route-page--play) .mini-mark span {
 
 .blob-stat-card {
   padding: 10px 16px;
-  border: 1px solid color-mix(in srgb, var(--paper) 20%, transparent);
-  background: color-mix(in srgb, var(--ink) 85%, transparent);
-  backdrop-filter: blur(12px);
+  border: 1px solid color-mix(in srgb, var(--paper) 24%, transparent);
+  background: color-mix(in srgb, var(--ink) 88%, transparent);
+  backdrop-filter: blur(16px);
 }
 
 .blob-stat-card .label {
   display: block;
-  color: color-mix(in srgb, var(--paper) 45%, transparent);
+  color: color-mix(in srgb, var(--paper) 48%, transparent);
   font-size: 7px;
   letter-spacing: 0.16em;
 }
@@ -741,22 +798,6 @@ body:has(.route-page--play) .mini-mark span {
   font-weight: 700;
 }
 
-/* HUD Controls Helper */
-.blob-hud__controls {
-  position: absolute;
-  bottom: 24px;
-  left: 24px;
-  display: flex;
-  gap: 18px;
-  padding: 10px 16px;
-  border: 1px solid color-mix(in srgb, var(--paper) 15%, transparent);
-  background: color-mix(in srgb, var(--ink) 80%, transparent);
-  color: color-mix(in srgb, var(--paper) 60%, transparent);
-  font-size: 9px;
-  letter-spacing: 0.1em;
-  pointer-events: none;
-}
-
 /* HUD Minimap */
 .blob-hud__minimap {
   position: absolute;
@@ -764,9 +805,9 @@ body:has(.route-page--play) .mini-mark span {
   right: 24px;
   width: 110px;
   height: 110px;
-  border: 1px solid color-mix(in srgb, var(--paper) 25%, transparent);
-  background: color-mix(in srgb, var(--ink) 90%, transparent);
-  backdrop-filter: blur(8px);
+  border: 1px solid color-mix(in srgb, var(--paper) 24%, transparent);
+  background: color-mix(in srgb, var(--ink) 92%, transparent);
+  backdrop-filter: blur(12px);
   pointer-events: none;
 }
 
@@ -777,6 +818,12 @@ body:has(.route-page--play) .mini-mark span {
   border-radius: 50%;
   transform: translate(-50%, -50%);
   box-shadow: 0 0 8px currentColor;
+  animation: blob-pin-pulse 2s ease-in-out infinite alternate;
+}
+
+@keyframes blob-pin-pulse {
+  from { transform: translate(-50%, -50%) scale(0.9); }
+  to { transform: translate(-50%, -50%) scale(1.35); }
 }
 
 /* Join & Death Modals */
@@ -786,22 +833,24 @@ body:has(.route-page--play) .mini-mark span {
   inset: 0;
   display: grid;
   place-items: center;
-  background: color-mix(in srgb, var(--ink) 80%, transparent);
-  backdrop-filter: blur(16px);
+  background: color-mix(in srgb, var(--ink) 85%, transparent);
+  backdrop-filter: blur(18px);
   z-index: 10;
 }
 
 .blob-join-card,
 .blob-death-card {
-  width: min(420px, calc(100% - 32px));
-  padding: 40px;
-  border: 1px solid color-mix(in srgb, var(--paper) 28%, transparent);
-  background: var(--ink);
+  width: min(440px, calc(100% - 40px));
+  padding: 38px;
+  border: 1px solid var(--acid);
+  background: color-mix(in srgb, var(--ink) 94%, transparent);
   color: var(--paper);
   text-align: center;
+  backdrop-filter: blur(18px);
 }
 
-.blob-join-card__kicker {
+.blob-join-card__kicker,
+.blob-death-card > span {
   color: var(--acid);
   font-size: 8px;
   letter-spacing: 0.22em;
@@ -810,15 +859,15 @@ body:has(.route-page--play) .mini-mark span {
 
 .blob-join-card h3,
 .blob-death-card h3 {
-  margin: 12px 0 8px;
-  font: 600 36px/1 "Manrope Variable", sans-serif;
-  letter-spacing: -0.04em;
+  margin: 14px 0 8px;
+  font: 600 clamp(36px, 6vw, 54px)/0.95 "Manrope Variable", sans-serif;
+  letter-spacing: -0.055em;
 }
 
 .blob-join-card p,
 .blob-death-card p {
-  margin-bottom: 28px;
-  color: color-mix(in srgb, var(--paper) 60%, transparent);
+  margin-bottom: 26px;
+  color: color-mix(in srgb, var(--paper) 62%, transparent);
   font-size: 12px;
   line-height: 1.6;
 }
@@ -843,7 +892,7 @@ body:has(.route-page--play) .mini-mark span {
   height: 48px;
   padding: 0 16px;
   border: 1px solid color-mix(in srgb, var(--paper) 24%, transparent);
-  background: #111218;
+  background: color-mix(in srgb, var(--ink) 96%, transparent);
   color: var(--paper);
   font: 500 14px "DM Sans Variable", sans-serif;
   outline: none;
@@ -879,7 +928,7 @@ body:has(.route-page--play) .mini-mark span {
 }
 
 .color-btn.is-selected {
-  border-color: #ffffff;
+  border-color: var(--acid);
   transform: scale(1.2);
   box-shadow: 0 0 12px currentColor;
 }
@@ -904,26 +953,105 @@ body:has(.route-page--play) .mini-mark span {
   transform: translateY(-2px);
 }
 
+.blob-instructions {
+  margin: 14px 0 0;
+  color: color-mix(in srgb, var(--paper) 48%, transparent);
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  text-align: center;
+}
+
+.blob-actions {
+  display: grid;
+  max-width: 620px;
+  margin: 38px auto 0;
+  grid-template-columns: 1fr 1fr;
+}
+
+.blob-actions button {
+  min-height: 62px;
+}
+
+.blob-actions button + button {
+  border-left: 0;
+}
+
+.blob-actions button:hover,
+.blob-actions button:focus-visible {
+  outline: none;
+  border-color: var(--acid);
+  background: var(--acid);
+  color: #111;
+}
+
+.blob-actions button span {
+  display: block;
+  margin-top: 5px;
+  color: color-mix(in srgb, currentColor 55%, transparent);
+  font-size: 7px;
+}
+
 @media (max-width: 700px) {
   .blob-game__bar {
     grid-template-columns: 1fr;
   }
-  .blob-game__subinfo {
-    text-align: left;
+
+  .blob-mode-selector {
+    min-width: 0;
   }
+
+  .blob-mode-selector button {
+    min-height: 54px;
+    padding: 8px 4px;
+    font-size: 7px;
+  }
+
+  .blob-game__status {
+    gap: 12px;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .blob-board-shell {
+    height: clamp(380px, 60vh, 520px);
+  }
+
   .blob-hud__stats {
     top: 12px;
     left: 12px;
-
   }
+
   .blob-hud__leaderboard {
     top: 12px;
     right: 12px;
-    width: 160px;
+    width: 150px;
     padding: 10px 12px;
   }
-  .blob-hud__controls {
-    display: none;
+
+  .blob-hud__minimap {
+    bottom: 12px;
+    right: 12px;
+    width: 80px;
+    height: 80px;
+  }
+
+  .blob-instructions {
+    padding: 0 20px;
+    line-height: 1.7;
+  }
+
+  .blob-actions {
+    margin-top: 28px;
+  }
+
+  .blob-actions button {
+    min-height: 58px;
+    font-size: 7px;
+  }
+
+  .blob-join-card,
+  .blob-death-card {
+    padding: 28px 18px;
   }
 }
 

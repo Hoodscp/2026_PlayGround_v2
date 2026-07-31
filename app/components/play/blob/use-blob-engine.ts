@@ -77,12 +77,12 @@ const BOT_NAMES = [
 ];
 
 const COLORS = [
-  "#ccff00", // Acid Green (Playground Signature)
-  "#f4f4f0", // Paper White
-  "#00e5ff", // Liquid Cyan
-  "#ff3366", // Cyber Crimson
-  "#ab47bc", // Velvet Purple
-  "#ffaa00", // Amber Gold
+  "#dfff47", // Acid Green (Playground Signature)
+  "#f7f7f2", // Paper White
+  "#79d7ff", // Liquid Cyan
+  "#ff7bc4", // Cyber Pink
+  "#b388ff", // Soft Purple
+  "#ffb74d", // Amber Gold
 ];
 
 function createSubParticles(x: number, y: number, baseRadius: number): SubParticle[] {
@@ -103,7 +103,9 @@ export function useBlobEngine() {
   const [score, setScore] = useState(0);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
 
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const bgCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const blobsCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const labelsCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Engine state references
   const playerIdRef = useRef<string>(`player_${Math.random().toString(36).substring(2, 9)}`);
@@ -291,7 +293,7 @@ export function useBlobEngine() {
         cell.radius = splitRadius;
 
         const angle = Math.atan2(mousePos.y - cell.y, mousePos.x - cell.x);
-        const speed = 4.5;
+        const speed = 6.75; // 1.5x faster split impulse
 
         const nx = cell.x + Math.cos(angle) * (splitRadius + 8);
         const ny = cell.y + Math.sin(angle) * (splitRadius + 8);
@@ -334,7 +336,7 @@ export function useBlobEngine() {
         cell.radius = Math.max(MIN_RADIUS, Math.sqrt(cell.radius * cell.radius - 25));
 
         const angle = Math.atan2(mousePos.y - cell.y, mousePos.x - cell.x);
-        const speed = 3.5;
+        const speed = 5.25; // 1.5x faster eject speed
 
         ejectedRef.current.push({
           id: `eject_${Date.now()}_${Math.random()}`,
@@ -356,20 +358,24 @@ export function useBlobEngine() {
     let syncCounter = 0;
 
     const updateAndRender = () => {
-      const canvas = canvasRef.current;
-      if (!canvas) {
+      const bgCanvas = bgCanvasRef.current;
+      const blobsCanvas = blobsCanvasRef.current;
+      const labelsCanvas = labelsCanvasRef.current;
+      if (!bgCanvas || !blobsCanvas || !labelsCanvas) {
         animationFrameId = requestAnimationFrame(updateAndRender);
         return;
       }
 
-      const ctx = canvas.getContext("2d");
-      if (!ctx) {
+      const bgCtx = bgCanvas.getContext("2d");
+      const blobsCtx = blobsCanvas.getContext("2d");
+      const labelsCtx = labelsCanvas.getContext("2d");
+      if (!bgCtx || !blobsCtx || !labelsCtx) {
         animationFrameId = requestAnimationFrame(updateAndRender);
         return;
       }
 
-      const width = canvas.width;
-      const height = canvas.height;
+      const width = bgCanvas.width;
+      const height = bgCanvas.height;
 
       // 1. Update Player & Bot Movements
       const myCells = cellsRef.current.get(playerIdRef.current) || [];
@@ -398,24 +404,24 @@ export function useBlobEngine() {
         setScore(Math.floor(totalRadius * 10));
       }
 
-      // Smooth camera follow
-      viewportRef.current.x += (avgX - viewportRef.current.x) * 0.05;
-      viewportRef.current.y += (avgY - viewportRef.current.y) * 0.05;
+      // Smooth camera follow (1.5x faster tracking)
+      viewportRef.current.x += (avgX - viewportRef.current.x) * 0.08;
+      viewportRef.current.y += (avgY - viewportRef.current.y) * 0.08;
       viewportRef.current.width = width;
       viewportRef.current.height = height;
 
-      // Update Player Cells Position
+      // Update Player Cells Position (1.5x faster speed & acceleration)
       const mousePos = mousePosRef.current;
       myCells.forEach((cell) => {
         const dx = mousePos.x - cell.x;
         const dy = mousePos.y - cell.y;
         const dist = Math.hypot(dx, dy);
 
-        const maxSpeed = Math.max(0.5, 2.0 - cell.radius * 0.007);
+        const maxSpeed = Math.max(0.75, 3.0 - cell.radius * 0.01);
 
         if (dist > 8) {
-          cell.vx += (dx / dist) * maxSpeed * 0.02;
-          cell.vy += (dy / dist) * maxSpeed * 0.02;
+          cell.vx += (dx / dist) * maxSpeed * 0.032;
+          cell.vy += (dy / dist) * maxSpeed * 0.032;
         }
 
         cell.vx *= 0.93;
@@ -512,9 +518,9 @@ export function useBlobEngine() {
           const dy = targetY - bot.y;
           const dist = Math.hypot(dx, dy);
 
-          const botSpeed = Math.max(0.5, 1.8 - bot.radius * 0.006);
-          bot.vx += (dx / dist) * botSpeed * 0.018;
-          bot.vy += (dy / dist) * botSpeed * 0.018;
+          const botSpeed = Math.max(0.75, 2.7 - bot.radius * 0.009);
+          bot.vx += (dx / dist) * botSpeed * 0.027;
+          bot.vy += (dy / dist) * botSpeed * 0.027;
 
           bot.vx *= 0.93;
           bot.vy *= 0.93;
@@ -580,18 +586,19 @@ export function useBlobEngine() {
         mass.vy *= 0.95;
       });
 
-      // 2. Collision & Eating Logic
+      // 2. Collision & Eating Logic (Optimized fast squared distance checks)
       const allPlayerCells: BlobCell[] = [];
       cellsRef.current.forEach((cells) => {
         allPlayerCells.push(...cells);
       });
 
-      // Eat Food
       allPlayerCells.forEach((cell) => {
+        const cellRSq = cell.radius * cell.radius;
         foodsRef.current = foodsRef.current.filter((food) => {
-          const dist = Math.hypot(food.x - cell.x, food.y - cell.y);
-          if (dist < cell.radius) {
-            cell.radius = Math.min(MAX_RADIUS, Math.sqrt(cell.radius * cell.radius + 1.2));
+          const dx = food.x - cell.x;
+          const dy = food.y - cell.y;
+          if (dx * dx + dy * dy < cellRSq) {
+            cell.radius = Math.min(MAX_RADIUS, Math.sqrt(cellRSq + 1.2));
             return false;
           }
           return true;
@@ -599,9 +606,10 @@ export function useBlobEngine() {
 
         // Eat Ejected mass
         ejectedRef.current = ejectedRef.current.filter((mass) => {
-          const dist = Math.hypot(mass.x - cell.x, mass.y - cell.y);
-          if (dist < cell.radius && cell.radius > mass.radius + 4) {
-            cell.radius = Math.min(MAX_RADIUS, Math.sqrt(cell.radius * cell.radius + 8));
+          const dx = mass.x - cell.x;
+          const dy = mass.y - cell.y;
+          if (cell.radius > mass.radius + 4 && dx * dx + dy * dy < cellRSq) {
+            cell.radius = Math.min(MAX_RADIUS, Math.sqrt(cellRSq + 8));
             return false;
           }
           return true;
@@ -609,8 +617,9 @@ export function useBlobEngine() {
 
         // Hit Virus
         virusesRef.current.forEach((virus) => {
-          const dist = Math.hypot(virus.x - cell.x, virus.y - cell.y);
-          if (dist < cell.radius && cell.radius > virus.radius + 6) {
+          const dx = virus.x - cell.x;
+          const dy = virus.y - cell.y;
+          if (cell.radius > virus.radius + 6 && dx * dx + dy * dy < cellRSq) {
             cell.radius = Math.max(MIN_RADIUS, cell.radius * 0.6);
           }
         });
@@ -638,8 +647,12 @@ export function useBlobEngine() {
 
           if (c1.name === c2.name && c1.isPlayer && c2.isPlayer) continue;
 
-          const dist = Math.hypot(c1.x - c2.x, c1.y - c2.y);
-          if (dist < c1.radius - c2.radius / 3 && c1.radius > c2.radius * 1.12) {
+          const dx = c1.x - c2.x;
+          const dy = c1.y - c2.y;
+          const distSq = dx * dx + dy * dy;
+          const eatDistThreshold = c1.radius - c2.radius / 3;
+
+          if (distSq < eatDistThreshold * eatDistThreshold && c1.radius > c2.radius * 1.12) {
             c1.radius = Math.min(MAX_RADIUS, Math.sqrt(c1.radius * c1.radius + c2.radius * c2.radius));
             c2.radius = 0;
 
@@ -701,159 +714,195 @@ export function useBlobEngine() {
         });
       }
 
-      // 4. Update Leaderboard
-      const leaderboardData: LeaderboardEntry[] = [];
-      cellsRef.current.forEach((cells, id) => {
-        if (cells.length > 0) {
-          const totalCellMass = cells.reduce((acc, c) => acc + c.radius, 0);
-          leaderboardData.push({
-            id,
-            name: cells[0].name,
-            score: Math.floor(totalCellMass * 10),
-            isPlayer: id === playerIdRef.current,
-          });
-        }
-      });
-      leaderboardData.sort((a, b) => b.score - a.score);
-      setLeaderboard(leaderboardData.slice(0, 5));
+      // 4. Update Leaderboard (Throttled once every 15 frames for 60FPS performance)
+      if (syncCounter % 15 === 0) {
+        const leaderboardData: LeaderboardEntry[] = [];
+        cellsRef.current.forEach((cells, id) => {
+          if (cells.length > 0) {
+            const totalCellMass = cells.reduce((acc, c) => acc + c.radius, 0);
+            leaderboardData.push({
+              id,
+              name: cells[0].name,
+              score: Math.floor(totalCellMass * 10),
+              isPlayer: id === playerIdRef.current,
+            });
+          }
+        });
+        leaderboardData.sort((a, b) => b.score - a.score);
+        setLeaderboard(leaderboardData.slice(0, 5));
+      }
 
-      // 5. RENDER CANVAS (Clean sharp background + Real Wall Clipping)
+      // 5. RENDER DUAL CANVASES (bgCtx for crisp world & text, blobsCtx for GPU liquid metaballs)
       const camX = viewportRef.current.x;
       const camY = viewportRef.current.y;
       const halfW = width / 2;
       const halfH = height / 2;
 
-      ctx.fillStyle = "#0a0a0c";
-      ctx.fillRect(0, 0, width, height);
+      // Clear all 3 canvases
+      bgCtx.fillStyle = "#090909";
+      bgCtx.fillRect(0, 0, width, height);
+      blobsCtx.clearRect(0, 0, width, height);
+      labelsCtx.clearRect(0, 0, width, height);
 
-      ctx.save();
-      ctx.translate(halfW - camX, halfH - camY);
+      bgCtx.save();
+      bgCtx.translate(halfW - camX, halfH - camY);
 
-      // Grid Pattern (Clean sharp lines)
-      ctx.strokeStyle = "rgba(244, 244, 240, 0.04)";
-      ctx.lineWidth = 1;
-      const gridSize = 80;
+      blobsCtx.save();
+      blobsCtx.translate(halfW - camX, halfH - camY);
+
+      labelsCtx.save();
+      labelsCtx.translate(halfW - camX, halfH - camY);
+
+      // --- A. CRISP WORLD LAYER (bgCtx) ---
+      // Floor Radial Light Aura
+      const auraGrad = bgCtx.createRadialGradient(camX, camY, 10, camX, camY, Math.max(width, height) * 0.75);
+      auraGrad.addColorStop(0, "rgba(247, 247, 242, 0.08)");
+      auraGrad.addColorStop(1, "rgba(247, 247, 242, 0)");
+      bgCtx.fillStyle = auraGrad;
+      bgCtx.fillRect(camX - width, camY - height, width * 2, height * 2);
+
+      // Grid Pattern
+      bgCtx.strokeStyle = "rgba(247, 247, 242, 0.035)";
+      bgCtx.lineWidth = 1;
+      const gridSize = 64;
       const startX = Math.floor((camX - halfW) / gridSize) * gridSize;
       const endX = Math.ceil((camX + halfW) / gridSize) * gridSize;
       const startY = Math.floor((camY - halfH) / gridSize) * gridSize;
       const endY = Math.ceil((camY + halfH) / gridSize) * gridSize;
 
       for (let x = startX; x <= endX; x += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(x, startY);
-        ctx.lineTo(x, endY);
-        ctx.stroke();
+        bgCtx.beginPath();
+        bgCtx.moveTo(x, startY);
+        bgCtx.lineTo(x, endY);
+        bgCtx.stroke();
       }
       for (let y = startY; y <= endY; y += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(startX, y);
-        ctx.lineTo(endX, y);
-        ctx.stroke();
+        bgCtx.beginPath();
+        bgCtx.moveTo(startX, y);
+        bgCtx.lineTo(endX, y);
+        bgCtx.stroke();
       }
 
       // Arena Outer Boundary Wall Line (Crisp)
-      ctx.strokeStyle = "rgba(244, 244, 240, 0.25)";
-      ctx.lineWidth = 3;
-      ctx.strokeRect(0, 0, WORLD_SIZE, WORLD_SIZE);
+      bgCtx.strokeStyle = "rgba(247, 247, 242, 0.35)";
+      bgCtx.lineWidth = 2.5;
+      bgCtx.strokeRect(0, 0, WORLD_SIZE, WORLD_SIZE);
 
-      // Foods
+      // Foods (Crisp energy droplets)
       foodsRef.current.forEach((food) => {
-        ctx.fillStyle = food.color;
-        ctx.beginPath();
-        ctx.arc(food.x, food.y, food.radius, 0, Math.PI * 2);
-        ctx.fill();
+        bgCtx.fillStyle = food.color;
+        bgCtx.beginPath();
+        bgCtx.arc(food.x, food.y, food.radius, 0, Math.PI * 2);
+        bgCtx.fill();
+
+        bgCtx.fillStyle = "rgba(255, 255, 255, 0.7)";
+        bgCtx.beginPath();
+        bgCtx.arc(food.x - food.radius * 0.25, food.y - food.radius * 0.25, food.radius * 0.3, 0, Math.PI * 2);
+        bgCtx.fill();
       });
 
-      // Ejected Mass
+      // Ejected Mass (Crisp)
       ejectedRef.current.forEach((mass) => {
-        ctx.fillStyle = mass.color;
-        ctx.beginPath();
-        ctx.arc(mass.x, mass.y, mass.radius, 0, Math.PI * 2);
-        ctx.fill();
+        bgCtx.fillStyle = mass.color;
+        bgCtx.beginPath();
+        bgCtx.arc(mass.x, mass.y, mass.radius, 0, Math.PI * 2);
+        bgCtx.fill();
       });
 
-      // Viruses
+      // Viruses (Crisp hazard saw-tooth portals)
       virusesRef.current.forEach((v) => {
-        ctx.fillStyle = "rgba(204, 255, 0, 0.35)";
-        ctx.beginPath();
-        const points = 16;
+        bgCtx.fillStyle = "rgba(223, 255, 71, 0.22)";
+        bgCtx.strokeStyle = "#dfff47";
+        bgCtx.lineWidth = 2;
+        bgCtx.beginPath();
+        const points = 18;
         for (let i = 0; i < points; i++) {
           const angle = (i / points) * Math.PI * 2;
-          const r = i % 2 === 0 ? v.radius : v.radius - 8;
+          const r = i % 2 === 0 ? v.radius : v.radius - 9;
           const px = v.x + Math.cos(angle) * r;
           const py = v.y + Math.sin(angle) * r;
-          if (i === 0) ctx.moveTo(px, py);
-          else ctx.lineTo(px, py);
+          if (i === 0) bgCtx.moveTo(px, py);
+          else bgCtx.lineTo(px, py);
         }
-        ctx.closePath();
-        ctx.fill();
+        bgCtx.closePath();
+        bgCtx.fill();
+        bgCtx.stroke();
+
+        bgCtx.fillStyle = "#dfff47";
+        bgCtx.beginPath();
+        bgCtx.arc(v.x, v.y, 8, 0, Math.PI * 2);
+        bgCtx.fill();
       });
 
-      // =========================================================================
-      // REAL WALL CLIPPING LAYER: Clip cell rendering exactly to [0, 0, WORLD_SIZE, WORLD_SIZE]
-      // =========================================================================
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(0, 0, WORLD_SIZE, WORLD_SIZE);
-      ctx.clip(); // Wall Clipping Mask: Liquid cannot cross the arena wall boundary!
+      // --- B. LIQUID GOOEY METABALL CELLS LAYER (blobsCtx) ---
+      blobsCtx.save();
+      blobsCtx.beginPath();
+      blobsCtx.rect(0, 0, WORLD_SIZE, WORLD_SIZE);
+      blobsCtx.clip();
 
-      // Render Blobs / Cells (Pure Organic Deformed Ellipse - No Inner Core Artifact)
+      // --- C. CRISP LABELS OVERLAY LAYER (labelsCtx: z-index 3) ---
+      labelsCtx.save();
+      labelsCtx.beginPath();
+      labelsCtx.rect(0, 0, WORLD_SIZE, WORLD_SIZE);
+      labelsCtx.clip();
+
       cellsRef.current.forEach((cells) => {
         cells.forEach((cell) => {
-          // Calculate Dynamic Squash & Stretch from Movement Speed and Wall Penetration
-          const speedStretch = Math.min(0.65, cell.speed * 0.35);
-
-          // Volume-preserving Wall Squish:
-          // If penetrating X-wall, reduce X-radius and expand Y-radius
-          // If penetrating Y-wall, reduce Y-radius and expand X-radius
+          const speedStretch = Math.min(0.45, cell.speed * 0.25);
           let rx = cell.radius * (1 + speedStretch);
-          let ry = cell.radius * (1 - speedStretch * 0.5);
+          let ry = cell.radius * (1 - speedStretch * 0.4);
 
+          const isCollidingWall = cell.wallPenetrationX > 0 || cell.wallPenetrationY > 0;
           if (cell.wallPenetrationX > 0) {
-            const penFactor = Math.min(cell.radius * 0.5, cell.wallPenetrationX);
-            rx = Math.max(8, rx - penFactor * 0.8);
-            ry = ry + penFactor * 0.6; // Volume preservation squish
+            const squish = Math.min(cell.radius * 0.4, cell.wallPenetrationX * 0.65);
+            rx = Math.max(12, rx - squish);
+            ry = ry + squish * 0.55;
           }
           if (cell.wallPenetrationY > 0) {
-            const penFactor = Math.min(cell.radius * 0.5, cell.wallPenetrationY);
-            ry = Math.max(8, ry - penFactor * 0.8);
-            rx = rx + penFactor * 0.6; // Volume preservation squish
+            const squish = Math.min(cell.radius * 0.4, cell.wallPenetrationY * 0.65);
+            ry = Math.max(12, ry - squish);
+            rx = rx + squish * 0.55;
           }
 
-          ctx.save();
-          ctx.translate(cell.x, cell.y);
-          if (cell.wallPenetrationX === 0 && cell.wallPenetrationY === 0) {
-            ctx.rotate(cell.angle || 0);
+          // 1. Trailing subparticles (Fused into metaballs by CSS filter on blobsCanvas)
+          if (cell.subParticles && cell.subParticles.length > 0) {
+            blobsCtx.fillStyle = cell.color;
+            [...cell.subParticles].reverse().forEach((sp) => {
+              blobsCtx.beginPath();
+              blobsCtx.arc(sp.x, sp.y, Math.max(4, sp.radius * 0.88), 0, Math.PI * 2);
+              blobsCtx.fill();
+            });
           }
 
-          const grad = ctx.createRadialGradient(-rx * 0.2, -ry * 0.2, rx * 0.05, 0, 0, Math.max(rx, ry));
-          grad.addColorStop(0, "rgba(255, 255, 255, 0.95)");
-          grad.addColorStop(0.35, cell.color);
-          grad.addColorStop(1, cell.color);
+          // 2. Main Body Ellipse
+          blobsCtx.save();
+          blobsCtx.translate(cell.x, cell.y);
+          if (!isCollidingWall) {
+            blobsCtx.rotate(cell.angle || 0);
+          }
+          blobsCtx.fillStyle = cell.color;
+          blobsCtx.beginPath();
+          blobsCtx.ellipse(0, 0, Math.max(6, rx), Math.max(6, ry), 0, 0, Math.PI * 2);
+          blobsCtx.fill();
+          blobsCtx.restore();
 
-          // Apply Gooey Filter ONLY to cell blob graphics
-          ctx.filter = "url(#blob-gooey-filter)";
-          ctx.fillStyle = grad;
-          ctx.beginPath();
-          ctx.ellipse(0, 0, Math.max(4, rx), Math.max(4, ry), 0, 0, Math.PI * 2);
-          ctx.fill();
-
-          ctx.restore();
-
-          // Reset filter for crisp clear Nickname Label text
-          ctx.filter = "none";
+          // 3. Crisp Nickname Text drawn on labelsCtx (z-index: 3, 100% on top of blobs & 100% sharp!)
           if (cell.radius > 14) {
-            ctx.fillStyle = cell.color === "#f4f4f0" ? "#0b0b0c" : "#ffffff";
-            ctx.font = `600 ${Math.max(10, Math.min(20, cell.radius * 0.34))}px "Manrope Variable", sans-serif`;
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillText(cell.name, cell.x, cell.y);
+            labelsCtx.fillStyle = cell.color === "#f7f7f2" ? "#0b0b0c" : "#ffffff";
+            labelsCtx.font = `600 ${Math.max(10, Math.min(20, cell.radius * 0.34))}px "Manrope Variable", sans-serif`;
+            labelsCtx.textAlign = "center";
+            labelsCtx.textBaseline = "middle";
+            labelsCtx.fillText(cell.name, cell.x, cell.y);
           }
         });
       });
 
-      ctx.restore(); // Restore Wall Clipping Mask
-      ctx.restore(); // Restore Camera Translate
+      blobsCtx.restore();
+      labelsCtx.restore();
+
+      bgCtx.restore();
+      blobsCtx.restore();
+      labelsCtx.restore();
 
       animationFrameId = requestAnimationFrame(updateAndRender);
     };
@@ -863,7 +912,7 @@ export function useBlobEngine() {
   }, []);
 
   const handlePointerMove = (clientX: number, clientY: number) => {
-    const canvas = canvasRef.current;
+    const canvas = bgCanvasRef.current || blobsCanvasRef.current || labelsCanvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
     const relX = clientX - rect.left;
@@ -884,8 +933,20 @@ export function useBlobEngine() {
     };
   };
 
+  const resetWorld = useCallback(() => {
+    initWorld();
+    cellsRef.current.clear();
+    if (joinedRef.current && !isDeadRef.current) {
+      joinGame(nicknameRef.current || "GooeyBlob", colorRef.current || COLORS[0]);
+    } else {
+      spawnBots();
+    }
+  }, [initWorld]);
+
   return {
-    canvasRef,
+    bgCanvasRef,
+    blobsCanvasRef,
+    labelsCanvasRef,
     joined,
     nickname,
     playerColor,
@@ -897,6 +958,7 @@ export function useBlobEngine() {
     splitPlayer,
     ejectMass,
     handlePointerMove,
+    resetWorld,
     viewportRef,
     COLORS,
   };
