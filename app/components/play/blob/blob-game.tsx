@@ -128,7 +128,7 @@ export function BlobGame() {
             type="button"
             onClick={() => setActiveMode("multi")}
           >
-            LOCAL MULTI
+            LOCAL MULTIPLAYER
             <span>REALTIME SYNC</span>
           </button>
         </div>
