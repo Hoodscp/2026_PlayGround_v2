@@ -1,59 +1,75 @@
-# 🤖 README_AI.md - Context & System Prompt Guide for AI Assistants
+# 🤖 README_AI.md - Complete Architecture & System Context for AI Agents
 
-This document provides concise, high-density context for AI Coding Assistants (Antigravity, AGY CLI, Claude, ChatGPT, Cursor) working on **PlayGround v2**.
-
----
-
-## 🎯 Architecture Overview & Core Principles
-
-1. **Framework & Environment**:
-   - Next.js 16 (Turbopack), React 19, TypeScript.
-   - Strict adherence to zero ESLint warnings/errors (`npm run lint`) and successful static page generation (`npm run build`).
-
-2. **Design System & Visual Consistency (CRITICAL)**:
-   - **DO NOT** use generic utility frameworks like Tailwind unless requested. Use Vanilla CSS in [`app/play/play.css`](file:///home/ksj/workplace/web_dev/2026_PlayGround_v2/app/play/play.css).
-   - **Color Tokens**: `var(--paper)` (text/bright UI), `var(--ink)` (dark background `#060911`), `var(--acid)` (neon lime/cyan accent `#38bdf8` / `#22c55e`).
-   - **UI Hierarchy Convention across ALL Games**:
-     - Top Bar: `.play-kicker` (`GAME XX / TITLE`), `h2` title (`Manrope Variable`), right-aligned mode selector (`.defense-mode-selector`, `.tetris-mode-selector`).
-     - Monospace Status Bar: Single horizontal bar (`.defense-game__status`, `.blob-game__status`, `.tetris-game__status`) with monospace metadata separated by slashes.
-     - Glassmorphism Shell: Main wrapper (`.defense-board-shell`, `.tetris-board-shell`, `.blob-board-shell`) with `border: 1px solid color-mix(in srgb, var(--paper) 28%, transparent)` and `backdrop-filter: blur(20px)`.
-
-3. **3-Layer Canvas Architecture for Liquid Physics & SVG Gooey Filters**:
-   - Liquid physics games use 3 stacked HTML5 `<canvas>` elements inside a stage wrapper:
-     - `bgCanvasRef` (z-index 1): Grid lines, dark radial background gradients (drawn WITHOUT filter to prevent grid distortion).
-     - `blobsCanvasRef` (z-index 2): Liquid blobs, tentacles, projectiles (has CSS `filter: url("#defense-gooey-filter")` or `#gooey` applied for organic blob merging).
-     - `labelsCanvasRef` (z-index 3, `pointer-events: none`): HP bars, floating damage numbers, HUD overlays (drawn clean without filter so text remains 100% crisp).
-
-4. **React 19 Hooks & State Purity Rules**:
-   - **NEVER access or mutate `ref.current` during render**.
-   - Side effects (updating `ref.current` from state or running engine updates) MUST occur inside `useEffect` or event handlers.
-   - For state lazy initialization, pass a factory function: `useState(() => loadSavedData())`.
+This document is specifically tailored for AI Coding Assistants (Antigravity, AGY, Claude, ChatGPT, Cursor) working on **PlayGround v2**. It maps the entire codebase structure, design conventions, state persistence rules, and verification requirements.
 
 ---
 
-## 🕹️ Blob Defense Architecture Map (`/app/components/play/defense/`)
+## 🎯 Architectural Principles & Design Guidelines
 
-- [`use-defense-engine.ts`](file:///home/ksj/workplace/web_dev/2026_PlayGround_v2/app/components/play/defense/use-defense-engine.ts):
-  - **Dynamic Centering**: Calculates `coreX = width / 2`, `coreY = height / 2` during canvas render to guarantee exact core centering on all screen sizes.
-  - **Multi-Target Auto Firing**: `fireProjectiles(targetEnemies: Enemy[])` sorts enemies by proximity and targets `N` distinct closest enemies simultaneously (`stats.multiShot`).
-  - **Fractional Tick Loop**: Uses `tickFractionRef` to support `0.5x` slow-motion physics alongside `1.0x`, `2.0x`, `3.0x` speeds.
-  - **Persistence**: Key `playground_v2_defense_save` in `localStorage`. Automatically loads and saves `gold`, `highScore`, `maxWaveReached`, `upgrades`, `mutation`, `difficulty`.
-  - **Game Over Explosion**: Triggers 80 radial liquid splat particles + shockwave floating text + Web Audio explosion sound when core HP hits 0.
+### 1. Technology Stack & Environment
+- **Next.js 16 (Turbopack)**, **React 19**, **TypeScript**, **Web Audio API**.
+- Zero ESLint errors or warnings policy (`npm run lint`).
+- Clean static production build (`npm run build`).
 
-- [`defense-game.tsx`](file:///home/ksj/workplace/web_dev/2026_PlayGround_v2/app/components/play/defense/defense-game.tsx):
-  - Component view rendering top mode selector (`EASY`, `NORMAL`, `HARD`), status bar (`CORE HP`, `SHIELD`, `WAVE`, `GOLD`, `SCORE`, `MY STATS`, `SPEED`), health progress gauge bar, canvas stage, and right-side shop.
-  - **Shop Layout**: `.defense-shop-panel` uses fixed tabs (`.defense-shop__tabs`) with `flex-shrink: 0` and independent scrollable content (`.defense-shop__content` with custom scrollbar).
+### 2. UI Pattern Consistency Rules (STRICT MANDATE)
+All arcade games in [`app/components/play/`](file:///home/ksj/workplace/web_dev/2026_PlayGround_v2/app/components/play/) MUST strictly follow the same design tokens in [`app/play/play.css`](file:///home/ksj/workplace/web_dev/2026_PlayGround_v2/app/play/play.css):
+- **Header Top Bar**: `.play-kicker` (`GAME XX / TITLE`), `h2` title (`Manrope Variable`), right-aligned mode selector (`.defense-mode-selector`, `.tetris-mode-selector`, `.blob-mode-selector`).
+- **Status Bar**: Monospace text metadata bar (`.defense-game__status`, `.blob-game__status`, `.tetris-game__status`) with `color-mix(in srgb, var(--ink) 88%, transparent)` and `backdrop-filter: blur(16px)`.
+- **Board Shell Wrapper**: `.defense-board-shell`, `.tetris-board-shell`, `.blob-board-shell` with `border: 1px solid color-mix(in srgb, var(--paper) 28%, transparent)` and `backdrop-filter: blur(20px)`.
+- **CSS Color Tokens**: `var(--paper)` (primary white/light text), `var(--ink)` (deep navy/dark background `#060911`), `var(--acid)` (neon accent `#38bdf8` / `#22c55e`).
 
-- [`defense-sound.ts`](file:///home/ksj/workplace/web_dev/2026_PlayGround_v2/app/components/play/defense/defense-sound.ts):
-  - Zero-dependency Web Audio API procedural synthesizer for shoot, hit, enemy death, tentacle whip, upgrade, wave clear, and game over sub-bass/white-noise explosion sounds.
+### 3. Layered HTML5 Canvas Pattern for Liquid Physics
+Games requiring SVG Gooey filter liquid effect MUST use a 3-layer `<canvas>` approach:
+1. `bgCanvasRef` (Layer 1, Bottom): Background gradient, ambient rings, grid lines. **DO NOT** apply SVG gooey filter to this layer.
+2. `blobsCanvasRef` (Layer 2, Middle): Blobs, fluid particles, projectiles, tentacles. Apply CSS `filter: url("#defense-gooey-filter")` or `#gooey`.
+3. `labelsCanvasRef` (Layer 3, Top, `pointer-events: none`): HP bars, damage floating numbers, text. Rendered WITHOUT SVG filter to guarantee 100% crisp text readability.
+
+### 4. React 19 Hook Purity Standards
+- **NEVER mutate or access `.current` of `useRef` inside render bodies**.
+- Synchronize refs inside `useEffect` or within event callbacks (e.g. `onClick`, `onKeyDown`, requestAnimationFrame loop).
+- Lazy initialize `useState` via factory callbacks: `useState(() => loadSavedData())`.
 
 ---
 
-## 📋 Mandatory Verification Protocol
+## 🗺️ Complete Directory & Module Map
 
-Before declaring any task or feature complete, you MUST execute the following in terminal:
+### 1. Core Platform Components (`app/components/`)
+- [`filter-defs.tsx`](file:///home/ksj/workplace/web_dev/2026_PlayGround_v2/app/components/filter-defs.tsx): Global SVG Gooey filter `#gooey` definitions.
+- [`liquid-link.tsx`](file:///home/ksj/workplace/web_dev/2026_PlayGround_v2/app/components/liquid-link.tsx): Smooth liquid transition link wrapper.
+- [`liquid-page-transition.tsx`](file:///home/ksj/workplace/web_dev/2026_PlayGround_v2/app/components/liquid-page-transition.tsx): Framer Motion container for route page transitions.
+- `home/`: Landing page logo, hero section, and homepage controller (`playground-logo.tsx`, `hero.tsx`, `home-page.tsx`).
+- `motion/`: Interactive SVG filter tuning laboratory components (`motion-lab.tsx`, `live-controls.tsx`, `motion-controls-context.tsx`).
+- `play/`: Arcade games router (`play-page.tsx`) and game card deck selector (`game-selector.tsx`).
 
-```bash
-npm run lint    # Must return exit code 0 (0 errors, 0 warnings)
-npm run build   # Must compile cleanly via Turbopack (0 build errors)
-```
+### 2. Arcade Games Module Map (`app/components/play/`)
+
+#### Game 01: Maze Escape (`maze/`)
+- [`maze-game.tsx`](file:///home/ksj/workplace/web_dev/2026_PlayGround_v2/app/components/play/maze/maze-game.tsx): UI & input handlers.
+- [`maze-generator.ts`](file:///home/ksj/workplace/web_dev/2026_PlayGround_v2/app/components/play/maze/maze-generator.ts): DFS maze grid generator.
+- [`use-liquid-player.ts`](file:///home/ksj/workplace/web_dev/2026_PlayGround_v2/app/components/play/maze/use-liquid-player.ts): Liquid player movement hook.
+
+#### Game 02: Blob.io Liquid (`blob/`)
+- [`blob-game.tsx`](file:///home/ksj/workplace/web_dev/2026_PlayGround_v2/app/components/play/blob/blob-game.tsx): Canvas view & leaderboard HUD.
+- [`use-blob-engine.ts`](file:///home/ksj/workplace/web_dev/2026_PlayGround_v2/app/components/play/blob/use-blob-engine.ts): Agario-style 60FPS engine loop.
+- [`blob-physics.ts`](file:///home/ksj/workplace/web_dev/2026_PlayGround_v2/app/components/play/blob/blob-physics.ts): Wobble physics calculation.
+- [`blob-sound.ts`](file:///home/ksj/workplace/web_dev/2026_PlayGround_v2/app/components/play/blob/blob-sound.ts): Audio synthesizer.
+
+#### Game 03: Liquid Tetris (`tetris/`)
+- [`tetris-game.tsx`](file:///home/ksj/workplace/web_dev/2026_PlayGround_v2/app/components/play/tetris/tetris-game.tsx): Tetris stage & touch controls.
+- [`use-tetris-engine.ts`](file:///home/ksj/workplace/web_dev/2026_PlayGround_v2/app/components/play/tetris/use-tetris-engine.ts): Physics soft-body matrix & line clear logic.
+- [`tetris-sound.ts`](file:///home/ksj/workplace/web_dev/2026_PlayGround_v2/app/components/play/tetris/tetris-sound.ts): Web Audio sound effects.
+
+#### Game 04: Blob Defense (`defense/`)
+- [`defense-game.tsx`](file:///home/ksj/workplace/web_dev/2026_PlayGround_v2/app/components/play/defense/defense-game.tsx): UI Stage, difficulty selector (`EASY`/`NORMAL`/`HARD`), speed controls (`0.5X`~`3.0X`), progress gauge bars, shop tabs (`STATS`, `SKILLS`, `ELEMENT`, `MY STATS`) with fixed tabs and independent scroll content.
+- [`use-defense-engine.ts`](file:///home/ksj/workplace/web_dev/2026_PlayGround_v2/app/components/play/defense/use-defense-engine.ts): Dynamic core centering (`width / 2`), Multi-Target Auto Firing (`stats.multiShot`), fractional tick loop for `0.5x` slow-mo, localStorage persistence (`playground_v2_defense_save`), core explosion particle burst on game over.
+- [`defense-sound.ts`](file:///home/ksj/workplace/web_dev/2026_PlayGround_v2/app/components/play/defense/defense-sound.ts): Web Audio synthesizer for shoots, hits, tentacle whips, wave clears, and sub-bass white noise game over explosion.
+
+---
+
+## ⚡ Extension Guide for Future AI Agents
+
+When adding a new game (e.g. Game 05) or modifying existing games:
+1. Register the new game ID in [`game-selector.tsx`](file:///home/ksj/workplace/web_dev/2026_PlayGround_v2/app/components/play/game-selector.tsx).
+2. Mount the component in [`play-page.tsx`](file:///home/ksj/workplace/web_dev/2026_PlayGround_v2/app/components/play/play-page.tsx).
+3. Use existing design tokens in [`app/play/play.css`](file:///home/ksj/workplace/web_dev/2026_PlayGround_v2/app/play/play.css) for top bar, status bar, and board shell.
+4. Run `npm run lint` and `npm run build` after making code changes.
