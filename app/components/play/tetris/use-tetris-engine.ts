@@ -163,7 +163,17 @@ export function useTetrisEngine() {
   const [canHold, setCanHold] = useState(true);
   const [nextQueue, setNextQueue] = useState<PieceType[]>([]);
   const [score, setScore] = useState(0);
-  const [highScore, setHighScore] = useState(0);
+  const [highScore, setHighScore] = useState(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("playground_v2_tetris_highscore");
+        if (saved) return parseInt(saved, 10) || 0;
+      } catch {
+        // Ignore
+      }
+    }
+    return 0;
+  });
   const [lines, setLines] = useState(0);
   const [level, setLevel] = useState(1);
   const [combo, setCombo] = useState(0);
@@ -187,18 +197,6 @@ export function useTetrisEngine() {
   const comboRef = useRef(0);
 
   const lastDropTimeRef = useRef(0);
-  const lockTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const isLockingRef = useRef(false);
-
-  // Load high score on mount
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("playground_v2_tetris_highscore");
-      if (saved) setHighScore(parseInt(saved, 10) || 0);
-    } catch {
-      // Ignore
-    }
-  }, []);
 
   const getNextPieceFromBag = useCallback((): PieceType => {
     if (bagRef.current.length < 7) {
@@ -268,7 +266,7 @@ export function useTetrisEngine() {
   // Spawn a new piece
   const spawnNewPiece = useCallback(() => {
     setNextQueue((prev) => {
-      let queue = [...prev];
+      const queue = [...prev];
       while (queue.length < 4) {
         queue.push(getNextPieceFromBag());
       }

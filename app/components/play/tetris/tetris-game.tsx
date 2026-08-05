@@ -6,7 +6,6 @@ import {
   BOARD_COLS,
   BOARD_ROWS,
   HIDDEN_ROWS,
-  TOTAL_ROWS,
   TETROMINOES,
   type GameMode,
   type PieceType,
@@ -275,7 +274,7 @@ export function TetrisGame() {
           ref={boardRef}
           className="tetris-layout-container"
           style={{
-            transform: boardShake ? `translate(${(Math.random() - 0.5) * boardShake}px, ${(Math.random() - 0.5) * boardShake}px)` : "none",
+            transform: boardShake ? `translate(${Math.sin(boardShake * 12.3) * boardShake}px, ${Math.cos(boardShake * 17.1) * boardShake}px)` : "none",
           }}
         >
           {/* Left Panel: Hold & Mode Info */}

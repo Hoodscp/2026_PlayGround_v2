@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 
-export type GameId = "maze-escape" | "blob-liquid" | "tetris-liquid";
+export type GameId = "maze-escape" | "blob-liquid" | "tetris-liquid" | "blob-defense";
 
 const games = [
   {
@@ -29,7 +29,14 @@ const games = [
     ready: true,
     targetId: "tetris-liquid" as GameId,
   },
-  { number: "04", title: "Echo Type", type: "COMING SOON", description: "사라지는 글자의 잔상을 기억하고 입력합니다.", ready: false, targetId: undefined },
+  {
+    number: "04",
+    title: "Blob Defense",
+    type: "AUTO TOWER + UPGRADES",
+    description: "중앙의 액체 코어를 성장시키고 달라붙는 적들을 저지하는 디펜스.",
+    ready: true,
+    targetId: "blob-defense" as GameId,
+  },
   { number: "05", title: "Color Relay", type: "COMING SOON", description: "혼합된 색의 순서를 빠르게 따라갑니다.", ready: false, targetId: undefined },
   { number: "06", title: "Gravity Draw", type: "COMING SOON", description: "중력장을 그려 방울을 목적지로 보냅니다.", ready: false, targetId: undefined },
 ] as const;

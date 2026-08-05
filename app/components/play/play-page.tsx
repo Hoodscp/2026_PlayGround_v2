@@ -7,6 +7,7 @@ import { GameSelector, type GameId } from "./game-selector";
 import { MazeGame } from "./maze/maze-game";
 import { BlobGame } from "./blob/blob-game";
 import { TetrisGame } from "./tetris/tetris-game";
+import { DefenseGame } from "./defense/defense-game";
 
 export function PlayPage() {
   const [activeGame, setActiveGame] = useState<GameId | null>("maze-escape");
@@ -24,6 +25,7 @@ export function PlayPage() {
           {activeGame === "maze-escape" && <MazeGame key="maze-game" />}
           {activeGame === "blob-liquid" && <BlobGame key="blob-game" />}
           {activeGame === "tetris-liquid" && <TetrisGame key="tetris-game" />}
+          {activeGame === "blob-defense" && <DefenseGame key="defense-game" />}
         </div>
 
         <footer className="play-footer">PLAYGROUND v2 / INTERACTIVE GAME LAB</footer>

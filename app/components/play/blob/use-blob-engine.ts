@@ -107,8 +107,10 @@ export function useBlobEngine() {
   const blobsCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const labelsCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  // Engine state references
-  const playerIdRef = useRef<string>(`player_${Math.random().toString(36).substring(2, 9)}`);
+  const [playerId] = useState(() => `player_${Math.random().toString(36).substring(2, 9)}`);
+  const playerIdRef = useRef<string>(playerId);
+
+  const [viewportPos, setViewportPos] = useState({ x: WORLD_SIZE / 2, y: WORLD_SIZE / 2 });
   const nicknameRef = useRef<string>("");
   const colorRef = useRef<string>(COLORS[0]);
   const joinedRef = useRef<boolean>(false);
@@ -187,19 +189,50 @@ export function useBlobEngine() {
       bc.postMessage({ type: "ANNOUNCE_JOIN", payload: {} });
     }
 
+    const activePlayerId = playerIdRef.current;
     return () => {
       if (channelRef.current) {
         channelRef.current.postMessage({
           type: "REMOVE_PLAYER",
-          payload: { id: playerIdRef.current },
+          payload: { id: activePlayerId },
         });
         channelRef.current.close();
       }
     };
   }, [initWorld]);
 
+  // Spawn AI Bots
+  const spawnBots = useCallback(() => {
+    BOT_NAMES.forEach((botName, idx) => {
+      const botId = `bot_${idx}`;
+      if (!cellsRef.current.has(botId)) {
+        const bx = Math.random() * WORLD_SIZE;
+        const by = Math.random() * WORLD_SIZE;
+        const r = INITIAL_RADIUS + Math.random() * 20;
+        cellsRef.current.set(botId, [
+          {
+            id: `${botId}_0`,
+            isPlayer: false,
+            name: botName,
+            x: bx,
+            y: by,
+            vx: 0,
+            vy: 0,
+            radius: r,
+            color: COLORS[(idx + 1) % COLORS.length],
+            angle: Math.random() * Math.PI * 2,
+            speed: 1,
+            wallPenetrationX: 0,
+            wallPenetrationY: 0,
+            subParticles: createSubParticles(bx, by, r),
+          },
+        ]);
+      }
+    });
+  }, []);
+
   // Spawn Player
-  const joinGame = (name: string, chosenColor: string) => {
+  const joinGame = useCallback((name: string, chosenColor: string) => {
     const finalName = name.trim() || "GooeyBlob";
     nicknameRef.current = finalName;
     colorRef.current = chosenColor;
@@ -242,40 +275,7 @@ export function useBlobEngine() {
         payload: { id: playerIdRef.current, cells: playerCells },
       });
     }
-  };
-
-  // Spawn AI Bots
-  const spawnBots = () => {
-    BOT_NAMES.forEach((botName, idx) => {
-      const botId = `bot_${idx}`;
-      if (!cellsRef.current.has(botId)) {
-        const bx = Math.random() * WORLD_SIZE;
-        const by = Math.random() * WORLD_SIZE;
-        const r = INITIAL_RADIUS + Math.random() * 20;
-        cellsRef.current.set(botId, [
-          {
-            id: `${botId}_0`,
-            isPlayer: false,
-            isBot: true,
-            name: botName,
-            x: bx,
-            y: by,
-            vx: 0,
-            vy: 0,
-            radius: r,
-            color: COLORS[(idx + 1) % COLORS.length],
-            targetX: Math.random() * WORLD_SIZE,
-            targetY: Math.random() * WORLD_SIZE,
-            angle: 0,
-            speed: 0,
-            wallPenetrationX: 0,
-            wallPenetrationY: 0,
-            subParticles: createSubParticles(bx, by, r),
-          },
-        ]);
-      }
-    });
-  };
+  }, [spawnBots]);
 
   // Split Player Cells (Spacebar) - Generous size preservation!
   const splitPlayer = useCallback(() => {
@@ -409,6 +409,7 @@ export function useBlobEngine() {
       viewportRef.current.y += (avgY - viewportRef.current.y) * 0.08;
       viewportRef.current.width = width;
       viewportRef.current.height = height;
+      setViewportPos({ x: viewportRef.current.x, y: viewportRef.current.y });
 
       // Update Player Cells Position (1.5x faster speed & acceleration)
       const mousePos = mousePosRef.current;
@@ -941,7 +942,7 @@ export function useBlobEngine() {
     } else {
       spawnBots();
     }
-  }, [initWorld]);
+  }, [initWorld, joinGame, spawnBots]);
 
   return {
     bgCanvasRef,
@@ -960,6 +961,7 @@ export function useBlobEngine() {
     handlePointerMove,
     resetWorld,
     viewportRef,
+    viewportPos,
     COLORS,
   };
 }

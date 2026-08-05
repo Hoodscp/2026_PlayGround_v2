@@ -20,7 +20,7 @@ export function BlobGame() {
     ejectMass,
     handlePointerMove,
     resetWorld,
-    viewportRef,
+    viewportPos,
     COLORS,
   } = useBlobEngine();
 
@@ -194,8 +194,8 @@ export function BlobGame() {
                 <div
                   className="blob-hud__minimap-pin"
                   style={{
-                    left: `${(viewportRef.current.x / WORLD_SIZE) * 100}%`,
-                    top: `${(viewportRef.current.y / WORLD_SIZE) * 100}%`,
+                    left: `${(viewportPos.x / WORLD_SIZE) * 100}%`,
+                    top: `${(viewportPos.y / WORLD_SIZE) * 100}%`,
                     backgroundColor: playerColor,
                   }}
                 />
