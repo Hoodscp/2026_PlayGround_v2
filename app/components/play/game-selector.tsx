@@ -63,6 +63,106 @@ export function GameSelector({
     }, 50);
   }
 
+  function renderGameCardVisual(targetId?: GameId, index: number = 0) {
+    switch (targetId) {
+      case "maze-escape":
+        return (
+          <>
+            {/* Maze Grid & Flow Liquid Path Visual */}
+            <g filter={`url(#game-card-goo-${index})`}>
+              <circle className="game-card__blob game-card__blob--a" cx="75" cy="115" r="28" />
+              <circle className="game-card__blob game-card__blob--b" cx="130" cy="115" r="22" />
+              <circle className="game-card__blob game-card__blob--a" cx="130" cy="65" r="24" />
+              <circle className="game-card__blob game-card__blob--b" cx="210" cy="65" r="26" />
+              <circle className="game-card__blob game-card__blob--c" cx="245" cy="120" r="16" />
+            </g>
+            {/* Grid Maze Path Lines */}
+            <path
+              className="game-card__trace"
+              d="M 60 115 H 130 V 65 H 210 V 120 H 260"
+              strokeDasharray="4 4"
+              strokeWidth="2"
+              opacity="0.6"
+            />
+            {/* Goal exit marker */}
+            <rect x="250" y="110" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" opacity="0.8" />
+          </>
+        );
+
+      case "blob-liquid":
+        return (
+          <>
+            {/* Agario Split & Eject Liquid Blob Cells */}
+            <g filter={`url(#game-card-goo-${index})`}>
+              {/* Main divided player cells */}
+              <circle className="game-card__blob game-card__blob--a" cx="140" cy="95" r="42" />
+              <circle className="game-card__blob game-card__blob--b" cx="195" cy="115" r="28" />
+              <circle className="game-card__blob game-card__blob--c" cx="95" cy="125" r="20" />
+            </g>
+            {/* Small ejected mass food particles */}
+            <circle cx="230" cy="70" r="6" fill="currentColor" opacity="0.9" />
+            <circle cx="245" cy="85" r="5" fill="currentColor" opacity="0.8" />
+            <circle cx="225" cy="140" r="7" fill="currentColor" opacity="0.9" />
+            <circle cx="70" cy="75" r="6" fill="currentColor" opacity="0.7" />
+          </>
+        );
+
+      case "tetris-liquid":
+        return (
+          <>
+            {/* Falling Soft-body Liquid Tetrimino Blocks */}
+            <g filter={`url(#game-card-goo-${index})`}>
+              {/* T-Piece Block Fusion */}
+              <rect x="110" y="55" width="28" height="28" rx="8" className="game-card__blob game-card__blob--a" />
+              <rect x="135" y="55" width="28" height="28" rx="8" className="game-card__blob game-card__blob--a" />
+              <rect x="160" y="55" width="28" height="28" rx="8" className="game-card__blob game-card__blob--a" />
+              <rect x="135" y="80" width="28" height="28" rx="8" className="game-card__blob game-card__blob--a" />
+              
+              {/* L-Piece Landing Block Fusion below */}
+              <rect x="160" y="110" width="26" height="26" rx="7" className="game-card__blob game-card__blob--b" />
+              <rect x="184" y="110" width="26" height="26" rx="7" className="game-card__blob game-card__blob--b" />
+              <rect x="208" y="110" width="26" height="26" rx="7" className="game-card__blob game-card__blob--b" />
+              <rect x="208" y="86" width="26" height="26" rx="7" className="game-card__blob game-card__blob--b" />
+            </g>
+            {/* Matrix Drop Guide Lines */}
+            <line x1="124" y1="30" x2="124" y2="150" stroke="currentColor" strokeDasharray="3 3" opacity="0.2" />
+            <line x1="174" y1="30" x2="174" y2="150" stroke="currentColor" strokeDasharray="3 3" opacity="0.2" />
+          </>
+        );
+
+      case "blob-defense":
+        return (
+          <>
+            {/* Center Core, Shield Ring & Multi-Target Lasers */}
+            <g filter={`url(#game-card-goo-${index})`}>
+              {/* Center Core */}
+              <circle className="game-card__blob game-card__blob--a" cx="160" cy="95" r="38" />
+              {/* Surrounding tentacles / orbit defense blobs */}
+              <circle className="game-card__blob game-card__blob--b" cx="115" cy="70" r="16" />
+              <circle className="game-card__blob game-card__blob--b" cx="205" cy="70" r="16" />
+              <circle className="game-card__blob game-card__blob--b" cx="115" cy="120" r="16" />
+              <circle className="game-card__blob game-card__blob--b" cx="205" cy="120" r="16" />
+            </g>
+            {/* Barrier Shield Orbit */}
+            <circle cx="160" cy="95" r="54" fill="none" stroke="currentColor" strokeWidth="1.5" strokeDasharray="6 4" opacity="0.7" />
+            {/* Multi-Target Firing Rays */}
+            <line x1="160" y1="95" x2="65" y2="45" stroke="currentColor" strokeWidth="1.5" opacity="0.8" />
+            <line x1="160" y1="95" x2="255" y2="45" stroke="currentColor" strokeWidth="1.5" opacity="0.8" />
+            <line x1="160" y1="95" x2="65" y2="145" stroke="currentColor" strokeWidth="1.5" opacity="0.8" />
+            <line x1="160" y1="95" x2="255" y2="145" stroke="currentColor" strokeWidth="1.5" opacity="0.8" />
+          </>
+        );
+
+      default:
+        return (
+          <g filter={`url(#game-card-goo-${index})`}>
+            <circle className="game-card__blob game-card__blob--a" cx="140" cy="95" r="40" />
+            <circle className="game-card__blob game-card__blob--b" cx="185" cy="95" r="26" />
+          </g>
+        );
+    }
+  }
+
   return (
     <section className="game-select" aria-labelledby="game-select-title">
       <div className="game-select__intro">
@@ -135,16 +235,10 @@ export function GameSelector({
                     <feDisplacementMap in="SourceGraphic" in2="noise" scale={game.ready ? "11" : "4"} />
                   </filter>
                 </defs>
-                <g filter={`url(#game-card-goo-${index})`}>
-                  <circle className="game-card__blob game-card__blob--a" cx="126" cy="96" r={game.ready ? "58" : "48"} />
-                  <circle className="game-card__blob game-card__blob--b" cx="190" cy="88" r={game.ready ? "39" : "39"} />
-                  <circle className="game-card__blob game-card__blob--c" cx="226" cy="122" r={game.ready ? "26" : "21"} />
-                </g>
-                <path
-                  className="game-card__trace"
-                  d="M55 145 C105 22 218 168 276 44"
-                  filter={`url(#game-card-warp-${index})`}
-                />
+
+                {/* Unique SVG Visual tailored to each game's characteristic */}
+                {renderGameCardVisual(game.targetId, index)}
+
                 <text x="24" y="38">{game.number}</text>
               </svg>
 

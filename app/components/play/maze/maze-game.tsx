@@ -3,17 +3,10 @@
 import type { KeyboardEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import {
-  canMove,
-  DIRECTION,
-  type Difficulty,
-  type Direction,
-  type MazeData,
-  type MazePoint,
-  generateMaze,
-  WALL,
-} from "./maze-generator";
+import { canMove, DIRECTION, type Difficulty, type Direction, type MazeData, type MazePoint, generateMaze, WALL } from "./maze-generator";
 import { useLiquidPlayer } from "./use-liquid-player";
+import { LeaderboardModal } from "@/app/components/play/leaderboard-modal";
+import { getStoredGuestUser } from "@/lib/guest-session";
 
 const CELL = 32;
 const PADDING = 28;
@@ -122,6 +115,33 @@ export function MazeGame() {
   const [player, setPlayer] = useState<MazePoint | null>(null);
   const [moves, setMoves] = useState(0);
   const [won, setWon] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const submittedScoreRef = useRef<number | null>(null);
+  const [startTime, setStartTime] = useState<number>(() => Date.now());
+
+  // Auto-submit score to MongoDB backend when maze is escaped (won)
+  useEffect(() => {
+    if (won && moves > 0 && submittedScoreRef.current !== moves) {
+      submittedScoreRef.current = moves;
+      const clearTimeSec = Math.max(1, (Date.now() - startTime) / 1000);
+      const score = Math.max(10, Math.round(10000 / clearTimeSec - moves * 10));
+      const user = getStoredGuestUser();
+
+      fetch("/api/scores", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          guestId: user.guestId,
+          nickname: user.nickname,
+          gameId: "maze",
+          difficulty: difficulty.toUpperCase(),
+          score,
+          clearTime: clearTimeSec,
+          extraStats: { moves },
+        }),
+      }).catch((err) => console.error("Failed to submit maze score to DB:", err));
+    }
+  }, [won, moves, startTime, difficulty]);
   const [motionReset, setMotionReset] = useState(0);
   const [collision, setCollision] = useState({ version: 0, x: 0, y: 0 });
   const [liquidCells, setLiquidCells] = useState<MazePoint[]>([]);
@@ -142,6 +162,7 @@ export function MazeGame() {
     playerRef.current = nextMaze.start;
     setMoves(0);
     setWon(false);
+    setStartTime(Date.now());
     setCollision({ version: 0, x: 0, y: 0 });
     setLiquidCells([nextMaze.start]);
     setMotionReset((version) => version + 1);
@@ -287,7 +308,15 @@ export function MazeGame() {
       <div className="maze-game__status">
         <span>START / CENTER</span>
         <span>MOVES / {String(moves).padStart(3, "0")}</span>
+        <span>STATUS / {won ? "ESCAPED" : "EXPLORING"}</span>
         <span>SEED / {String(maze.seed >>> 0).slice(-6).padStart(6, "0")}</span>
+        <button
+          type="button"
+          className="play-rankings-btn"
+          onClick={() => setShowLeaderboard(true)}
+        >
+          🏆 RANKINGS
+        </button>
       </div>
 
       <div className="maze-board-shell">
@@ -458,9 +487,14 @@ export function MazeGame() {
             <span>EXIT FOUND</span>
             <h3 id="maze-success-title">You escaped.</h3>
             <p>{moves}번의 움직임으로 액체 미로를 빠져나왔습니다.</p>
-            <button ref={successButtonRef} type="button" onClick={() => newGame()}>
-              NEW RANDOM MAZE
-            </button>
+            <div className="maze-success-actions">
+              <button ref={successButtonRef} type="button" className="maze-success-btn maze-success-btn--secondary" onClick={() => newGame()}>
+                NEW RANDOM MAZE
+              </button>
+              <button type="button" className="maze-success-btn maze-success-btn--primary" onClick={() => setShowLeaderboard(true)}>
+                🏆 VIEW RANKINGS
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -469,7 +503,7 @@ export function MazeGame() {
         KEYBOARD — ARROW KEYS / WASD · POINTER — SWIPE UP / DOWN / LEFT / RIGHT
       </p>
       <p id="maze-live-status" className="sr-only" aria-live="polite">
-        {won ? `미로 탈출 성공. ${moves}번 이동했습니다.` : `현재 ${player.row + 1}행 ${player.col + 1}열`}
+        {won ? `미로 탈출 성공. ${moves}번 이동했습니다.` : `현재 ${player ? player.row + 1 : 0}행 ${player ? player.col + 1 : 0}열`}
       </p>
 
       <div className="maze-actions">
@@ -482,6 +516,13 @@ export function MazeGame() {
           <span>RANDOM MAZE</span>
         </button>
       </div>
+
+      <LeaderboardModal
+        isOpen={showLeaderboard}
+        onClose={() => setShowLeaderboard(false)}
+        gameId="maze"
+        gameTitle="Maze Escape"
+      />
     </section>
   );
 }

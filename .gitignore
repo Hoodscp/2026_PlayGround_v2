@@ -7,7 +7,7 @@
 
 # local environment files
 .env*
-!.env.example
+.env.example
 
 # logs
 npm-debug.log*

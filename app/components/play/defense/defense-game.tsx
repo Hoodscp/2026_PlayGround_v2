@@ -1,12 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import {
-  useDefenseEngine,
-  ELEMENTAL_DETAILS,
-  type ElementalType,
-  type DifficultyType,
-} from "./use-defense-engine";
+import { useDefenseEngine, ELEMENTAL_DETAILS, type ElementalType, type DifficultyType } from "./use-defense-engine";
+import { LeaderboardModal } from "@/app/components/play/leaderboard-modal";
+import { getStoredGuestUser } from "@/lib/guest-session";
 
 interface UpgradeConfig {
   key: string;
@@ -71,7 +68,31 @@ export function DefenseGame() {
   } = useDefenseEngine();
 
   const [activeTab, setActiveTab] = useState<"STATS" | "SKILLS" | "MUTATION" | "OVERVIEW">("STATS");
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
   const stageWrapperRef = useRef<HTMLDivElement | null>(null);
+  const submittedScoreRef = useRef<number | null>(null);
+
+  // Auto-submit score to MongoDB backend on GAMEOVER
+  useEffect(() => {
+    if (gameStatus === "GAMEOVER" && score > 0 && submittedScoreRef.current !== score) {
+      submittedScoreRef.current = score;
+      const user = getStoredGuestUser();
+
+      fetch("/api/scores", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          guestId: user.guestId,
+          nickname: user.nickname,
+          gameId: "defense",
+          difficulty,
+          score,
+          wave,
+          extraStats: { coreMaxHp, gold },
+        }),
+      }).catch((err) => console.error("Failed to submit score to DB:", err));
+    }
+  }, [gameStatus, score, wave, difficulty, coreMaxHp, gold]);
 
   // Synchronize 3 canvas layers to stage bounds
   useEffect(() => {
@@ -148,17 +169,17 @@ export function DefenseGame() {
         <span>ENEMIES / {enemiesRemaining}</span>
         <button
           type="button"
+          className="play-rankings-btn"
+          onClick={() => setShowLeaderboard(true)}
+        >
+          🏆 RANKINGS
+        </button>
+        <button
+          type="button"
           className="defense-status-btn"
           onClick={() => setGameSpeed(gameSpeed === 0.5 ? 1 : gameSpeed === 1 ? 2 : gameSpeed === 2 ? 3 : 0.5)}
         >
           SPEED / {gameSpeed}X
-        </button>
-        <button
-          type="button"
-          className={`defense-status-btn ${activeTab === "OVERVIEW" ? "is-active" : ""}`}
-          onClick={() => setActiveTab(activeTab === "OVERVIEW" ? "STATS" : "OVERVIEW")}
-        >
-          MY STATS
         </button>
         <button
           type="button"
@@ -278,6 +299,9 @@ export function DefenseGame() {
                   </button>
                   <button type="button" className="defense-btn defense-btn--secondary" onClick={startGame}>
                     RESTART FROM WAVE 01
+                  </button>
+                  <button type="button" className="defense-btn defense-btn--primary" onClick={() => setShowLeaderboard(true)}>
+                    🏆 GLOBAL RANKING
                   </button>
                 </div>
               </div>
@@ -468,8 +492,16 @@ export function DefenseGame() {
       {/* 4. Instructions Footer */}
       <footer className="defense-instructions">
         코어 블롭은 다가오는 서로 다른 적들을 동시에 자동 조준하여 사격합니다. 난이도 조절과 
-        브라우저 자동 저장 기능이 적용되었습니다.
+        브라우저 및 MongoDB 전역 랭킹 연동이 적용되었습니다.
       </footer>
+
+      {/* Leaderboard Modal */}
+      <LeaderboardModal
+        isOpen={showLeaderboard}
+        onClose={() => setShowLeaderboard(false)}
+        gameId="defense"
+        gameTitle="Blob Defense"
+      />
     </section>
   );
 }

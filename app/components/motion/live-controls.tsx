@@ -117,7 +117,7 @@ export function LiveControls() {
           </label>
         ))}
 
-        <div className="control-row">
+        <div className="control-row" style={{ marginTop: "12px" }}>
           <label className="color-control">
             <span>Color</span>
             <input
@@ -140,6 +140,47 @@ export function LiveControls() {
             </select>
           </label>
         </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            const title = prompt("프리셋 이름을 입력하세요 (예: Neon Acid Fluid):", "My Liquid Motion");
+            if (!title) return;
+
+            fetch("/api/motion/presets", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                title,
+                stdDeviation: values.blur,
+                matrixValues: [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, values.density, -9],
+              }),
+            })
+              .then((res) => res.json())
+              .then((data) => {
+                if (data.dbConnected) {
+                  alert(`✨ '${title}' 프리셋이 MongoDB에 성공적으로 저장되었습니다!`);
+                } else {
+                  alert(`⚠️ ${data.message || "로컬 브라우저에 임시 저장되었습니다."}`);
+                }
+              })
+              .catch(() => alert("프리셋 저장 요청 실패"));
+          }}
+          style={{
+            marginTop: "16px",
+            width: "100%",
+            padding: "8px",
+            background: "var(--acid, #38bdf8)",
+            color: "#060911",
+            fontWeight: 800,
+            border: "none",
+            borderRadius: "8px",
+            cursor: "pointer",
+            fontSize: "0.8rem",
+          }}
+        >
+          💾 SAVE PRESET TO DB
+        </button>
       </aside>
 
       <button

@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useEffect, FormEvent } from "react";
+import { useState, useEffect, useRef, FormEvent } from "react";
 import { useBlobEngine } from "./use-blob-engine";
+import { LeaderboardModal } from "@/app/components/play/leaderboard-modal";
+import { getStoredGuestUser } from "@/lib/guest-session";
 
 export function BlobGame() {
   const {
@@ -27,6 +29,28 @@ export function BlobGame() {
   const [inputNickname, setInputNickname] = useState("");
   const [selectedColor, setSelectedColor] = useState(COLORS[0]);
   const [activeMode, setActiveMode] = useState<"solo" | "multi">("solo");
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const submittedScoreRef = useRef<number | null>(null);
+
+  // Auto-submit score to MongoDB backend on Death
+  useEffect(() => {
+    if (isDead && score > 0 && submittedScoreRef.current !== score) {
+      submittedScoreRef.current = score;
+      const user = getStoredGuestUser();
+
+      fetch("/api/scores", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          guestId: user.guestId,
+          nickname: nickname || user.nickname,
+          gameId: "blob",
+          score,
+          difficulty: activeMode.toUpperCase(),
+        }),
+      }).catch((err) => console.error("Failed to submit blob score to DB:", err));
+    }
+  }, [isDead, score, nickname, activeMode]);
 
   // Sync canvas size with parent container
   useEffect(() => {
@@ -139,6 +163,13 @@ export function BlobGame() {
         <span>ARENA / 2400×2400 GRID</span>
         <span>MASS / {String(score).padStart(3, "0")}</span>
         <span>STATUS / {joined ? (isDead ? "DISSOLVED" : "ACTIVE CELL") : "WAITING ENTRANCE"}</span>
+        <button
+          type="button"
+          className="play-rankings-btn"
+          onClick={() => setShowLeaderboard(true)}
+        >
+          🏆 RANKINGS
+        </button>
       </div>
 
       {/* Main Board Container */}
@@ -290,6 +321,13 @@ export function BlobGame() {
           <span>RESPAWN BOTS & FOOD</span>
         </button>
       </div>
+
+      <LeaderboardModal
+        isOpen={showLeaderboard}
+        onClose={() => setShowLeaderboard(false)}
+        gameId="blob"
+        gameTitle="Blob.io Liquid"
+      />
     </section>
   );
 }

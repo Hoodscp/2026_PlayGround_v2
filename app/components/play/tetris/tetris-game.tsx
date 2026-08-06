@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
+import { LeaderboardModal } from "@/app/components/play/leaderboard-modal";
+import { getStoredGuestUser } from "@/lib/guest-session";
 import {
   useTetrisEngine,
   BOARD_COLS,
@@ -97,6 +99,29 @@ export function TetrisGame() {
   } = useTetrisEngine();
 
   const boardRef = useRef<HTMLDivElement>(null);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const submittedScoreRef = useRef<number | null>(null);
+
+  // Auto-submit score to MongoDB backend on GAMEOVER
+  useEffect(() => {
+    if (gameStatus === "GAMEOVER" && score > 0 && submittedScoreRef.current !== score) {
+      submittedScoreRef.current = score;
+      const user = getStoredGuestUser();
+
+      fetch("/api/scores", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          guestId: user.guestId,
+          nickname: user.nickname,
+          gameId: "tetris",
+          score,
+          difficulty: gameMode,
+          extraStats: { lines, level },
+        }),
+      }).catch((err) => console.error("Failed to submit score to DB:", err));
+    }
+  }, [gameStatus, score, gameMode, lines, level]);
 
   // Keyboard Navigation & Control Handling
   const handleKeyDown = useCallback(
@@ -266,6 +291,13 @@ export function TetrisGame() {
         <span>
           LEVEL / {String(level).padStart(2, "0")} · LINES / {String(lines).padStart(3, "0")}
         </span>
+        <button
+          type="button"
+          className="play-rankings-btn"
+          onClick={() => setShowLeaderboard(true)}
+        >
+          🏆 RANKINGS
+        </button>
       </div>
 
       {/* Main Board Shell */}
@@ -579,6 +611,13 @@ export function TetrisGame() {
           <span>[P] / ESC</span>
         </button>
       </div>
+
+      <LeaderboardModal
+        isOpen={showLeaderboard}
+        onClose={() => setShowLeaderboard(false)}
+        gameId="tetris"
+        gameTitle="Liquid Tetris"
+      />
     </section>
   );
 }
